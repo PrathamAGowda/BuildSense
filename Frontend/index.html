@@ -164,7 +164,13 @@
         transition: all .2s; z-index: 999; max-width: 280px; pointer-events: none;
       }
       #toast.show { transform: translateY(0) scale(1); opacity: 1; }
+      #delivery-map { 
+        width: 100%; height: 450px; border-radius: var(--radius); 
+        border: 1px solid var(--border); margin-top: 1rem; 
+      }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   </head>
   <body>
 
@@ -331,6 +337,9 @@
             </label>
             <button class="btn btn-primary" style="margin-left:auto;" onclick="planDelivery()">Plan Delivery</button>
           </div>
+        </div>
+        <div id="d-map-container">
+          <div id="delivery-map"></div>
         </div>
         <div id="d-output"></div>
       </div>
@@ -749,6 +758,9 @@
 
       /* Delivery */
       let truckCount = 0;
+      let deliveryMap = null;
+      let mapMarkers = [];
+      let mapPolylines = [];
 
       function buildDeliveryMatRows() {
         document.getElementById("d-mat-rows").innerHTML = materials.map(m => `
@@ -775,6 +787,118 @@
         document.getElementById("d-trucks").appendChild(div);
       }
 
+      function initDeliveryMap() {
+        if (deliveryMap) return;
+        const defaultCenter = [20.5937, 78.9629]; // India center [lat, lng]
+        deliveryMap = L.map('delivery-map').setView(defaultCenter, 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19
+        }).addTo(deliveryMap);
+      }
+
+      function clearMapMarkers() {
+        mapMarkers.forEach(m => deliveryMap.removeLayer(m));
+        mapPolylines.forEach(p => deliveryMap.removeLayer(p));
+        mapMarkers = [];
+        mapPolylines = [];
+      }
+
+      function displayTrucksOnMap(results) {
+        if (!deliveryMap) initDeliveryMap();
+        clearMapMarkers();
+        
+        // Sample coordinates for major Indian cities [lat, lng]
+        const cityCoords = {
+          "Bangalore": [12.9716, 77.5946],
+          "Coimbatore": [11.0081, 76.9366],
+          "Goa": [15.4909, 73.8278],
+          "Mumbai": [19.0760, 72.8777],
+          "Ahmedabad": [23.0225, 72.5714],
+          "Delhi": [28.7041, 77.1025],
+          "Kolkata": [22.5726, 88.3639],
+          "Hyderabad": [17.3850, 78.4867],
+          "Chennai": [13.0827, 80.2707],
+          "Depot (Bangalore)": [12.9716, 77.5946]
+        };
+
+        const colors = ["#FF5733", "#33FF57", "#3357FF", "#FF33F5", "#F5FF33", "#FF9500"];
+        const bounds = L.latLngBounds();
+
+        results.forEach((truck, idx) => {
+          const color = colors[idx % colors.length];
+          const route = truck.route || [];
+          
+          // Get coordinates for route
+          const routeCoords = route.map(loc => 
+            cityCoords[loc] || [20 + Math.random() * 10, 75 + Math.random() * 15]
+          );
+          
+          if (routeCoords.length > 0) {
+            // Draw polyline for truck route
+            const polyline = L.polyline(routeCoords, {
+              color: color,
+              weight: 3,
+              opacity: 0.8,
+              dashArray: '5, 5'
+            }).addTo(deliveryMap);
+            mapPolylines.push(polyline);
+
+            // Add markers for each stop
+            routeCoords.forEach((coord, stopIdx) => {
+              const isStart = stopIdx === 0;
+              const isEnd = stopIdx === routeCoords.length - 1;
+              
+              const markerIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="
+                  background: ${color}; 
+                  width: ${isStart ? 30 : isEnd ? 22 : 16}px; 
+                  height: ${isStart ? 30 : isEnd ? 22 : 16}px; 
+                  border-radius: 50%; 
+                  border: 2px solid white;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: white;
+                  font-size: 12px;
+                  font-weight: bold;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                ">${stopIdx + 1}</div>`,
+                iconSize: [isStart ? 30 : isEnd ? 22 : 16, isStart ? 30 : isEnd ? 22 : 16],
+                iconAnchor: [isStart ? 15 : isEnd ? 11 : 8, isStart ? 30 : isEnd ? 22 : 16]
+              });
+
+              const marker = L.marker(coord, {icon: markerIcon}).addTo(deliveryMap);
+              
+              const popupContent = `
+                <div style="font-size: 11px; min-width: 160px;">
+                  <strong style="color: ${color}; font-size: 13px;">${truck.truck_id}</strong><br/>
+                  <strong>Location:</strong> ${route[stopIdx]}<br/>
+                  <strong>Stop:</strong> ${stopIdx + 1} of ${route.length}<br/>
+                  <strong>Type:</strong> ${isStart ? 'Start/Depot' : isEnd ? 'End/Depot' : 'Stop'}<br/>
+                  <hr style="margin: 4px 0; border: none; border-top: 1px solid #eee;">
+                  <strong>Load:</strong> ${truck.used_kg.toLocaleString()} kg<br/>
+                  <strong>Capacity:</strong> ${truck.capacity_kg.toLocaleString()} kg<br/>
+                  <strong>Utilization:</strong> ${truck.utilization_pct.toFixed(1)}%<br/>
+                  <strong>Distance:</strong> ${truck.distance_km.toFixed(1)} km<br/>
+                  <strong>CO₂:</strong> ${truck.co2_kg.toLocaleString()} kg
+                </div>
+              `;
+              
+              marker.bindPopup(popupContent);
+              mapMarkers.push(marker);
+              bounds.extend(coord);
+            });
+          }
+        });
+
+        // Fit map to show all markers
+        if (mapMarkers.length > 0) {
+          deliveryMap.fitBounds(bounds, {padding: [50, 50]});
+        }
+      }
+
       async function planDelivery() {
         const oq = {};
         materials.forEach(m => { const v = parseFloat(document.getElementById(`d-qty-${m.name}`)?.value)||0; if(v>0) oq[m.name]=v; });
@@ -784,6 +908,7 @@
         const trucks = [...truckEls].map(el => ({ truck_id:el.querySelector(".t-id").value.trim(), capacity_kg:parseInt(el.querySelector(".t-cap").value) }));
         try {
           const results = await api("POST", "/delivery/plan", { order_quantities:oq, trucks, rain_expected:document.getElementById("d-rain").checked });
+          displayTrucksOnMap(results);
           document.getElementById("d-output").innerHTML = `<div class="grid">${results.map(a => {
             const mats = Object.entries(a.materials).map(([k,v])=>`${k}\xd7${v}`).join(", ") || "Empty";
             const u = a.utilization_pct;

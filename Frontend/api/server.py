@@ -35,6 +35,10 @@ from engine.logistics_engine import (
     optimize_truck_loads,
     solve_routes,
 )
+from engine.rerouting_engine import (
+    analyze_route_with_conditions,
+    compare_routes,
+)
 from models.material import Material, PhaseRecord
 
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -351,6 +355,76 @@ def delivery_plan():
             "co2_kg":          a.co2_kg,
         })
     return jsonify(result)
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Smart Re-Routing Endpoints                                         #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.post("/api/delivery/analyze-route")
+def analyze_route():
+    """
+    Analyze a single route with weather + traffic impact
+    
+    POST body: {
+        "route_name": "Route A",
+        "waypoints": [[lat, lon], [lat, lon], ...],
+        "truck_load_kg": 2500,
+        "truck_capacity_kg": 5000
+    }
+    """
+    try:
+        body = request.json
+        route_name = body.get("route_name", "Route")
+        waypoints = [(float(lat), float(lon)) for lat, lon in body["waypoints"]]
+        load = float(body["truck_load_kg"])
+        capacity = float(body["truck_capacity_kg"])
+        
+        if not waypoints or len(waypoints) < 2:
+            return jsonify({"error": "Provide at least 2 waypoints"}), 400
+        
+        analysis = analyze_route_with_conditions(waypoints, route_name, load, capacity)
+        return jsonify(analysis)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.post("/api/delivery/compare-routes")
+def compare_delivery_routes():
+    """
+    Compare multiple routes and recommend the best one
+    
+    POST body: {
+        "routes": [
+            {
+                "name": "Route A",
+                "waypoints": [[lat, lon], [lat, lon], ...]
+            },
+            {
+                "name": "Route B",
+                "waypoints": [[lat, lon], [lat, lon], ...]
+            }
+        ],
+        "truck_load_kg": 2500,
+        "truck_capacity_kg": 5000
+    }
+    """
+    try:
+        body = request.json
+        routes = [
+            (r["name"], [(float(lat), float(lon)) for lat, lon in r["waypoints"]])
+            for r in body.get("routes", [])
+        ]
+        load = float(body["truck_load_kg"])
+        capacity = float(body["truck_capacity_kg"])
+        
+        if len(routes) < 2:
+            return jsonify({"error": "Provide at least 2 routes to compare"}), 400
+        
+        comparison = compare_routes(routes, load, capacity)
+        return jsonify(comparison)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 
 # ─────────────────────────────────────────────────────────────────── #
