@@ -1,0 +1,7 @@
+venv/
+requirements.txt
+routing_model.zip
+__pycache__/
+*.pyc
+.env
+.vscode/
