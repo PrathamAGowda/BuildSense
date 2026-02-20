@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Depot (Bangalore)",
+    "lat": 12.9716,
+    "lon": 77.5946,
+    "demand": 0
+  },
+  {
+    "name": "Chennai Site",
+    "lat": 13.0827,
+    "lon": 80.2707,
+    "demand": 40
+  },
+  {
+    "name": "Hyderabad Site",
+    "lat": 17.385,
+    "lon": 78.4867,
+    "demand": 60
+  },
+  {
+    "name": "Mumbai Site",
+    "lat": 19.076,
+    "lon": 72.8777,
+    "demand": 50
+  },
+  {
+    "name": "Delhi Site",
+    "lat": 28.6139,
+    "lon": 77.209,
+    "demand": 70
+  },
+  {
+    "name": "Kolkata Site",
+    "lat": 22.5726,
+    "lon": 88.3639,
+    "demand": 30
+  },
+  {
+    "name": "Jaipur Site",
+    "lat": 26.9124,
+    "lon": 75.7873,
+    "demand": 45
+  },
+  {
+    "name": "Ahmedabad Site",
+    "lat": 23.0225,
+    "lon": 72.5714,
+    "demand": 35
+  },
+  {
+    "name": "Goa Site",
+    "lat": 15.2993,
+    "lon": 74.124,
+    "demand": 25
+  },
+  {
+    "name": "Coimbatore Site",
+    "lat": 11.0168,
+    "lon": 76.9558,
+    "demand": 10
+  }
+]

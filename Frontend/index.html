@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BuildSense</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:      #0d0f18;
+        --surface: #13161f;
+        --card:    #1c1f2e;
+        --border:  #252840;
+        --accent:  #4f8ef7;
+        --green:   #34d399;
+        --amber:   #fbbf24;
+        --red:     #f87171;
+        --text:    #e2e8f0;
+        --sub:     #94a3b8;
+        --radius:  10px;
+        --sidebar: 210px;
+      }
+
+      body {
+        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+        background: var(--bg); color: var(--text);
+        height: 100vh; display: flex; overflow: hidden;
+      }
+
+      /* Sidebar */
+      aside {
+        width: var(--sidebar); background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex; flex-direction: column;
+        flex-shrink: 0; height: 100vh; overflow-y: auto;
+      }
+      .logo {
+        padding: 1.2rem 1.15rem .95rem;
+        font-size: 1rem; font-weight: 800; letter-spacing: .04em;
+        color: var(--text); border-bottom: 1px solid var(--border);
+      }
+      .logo em { color: var(--accent); font-style: normal; }
+      nav { padding: .6rem .5rem; display: flex; flex-direction: column; gap: 1px; }
+      .nav-section {
+        font-size: .62rem; font-weight: 700; color: var(--sub);
+        text-transform: uppercase; letter-spacing: .08em;
+        padding: .8rem .7rem .25rem;
+      }
+      nav button {
+        background: none; border: none; cursor: pointer; color: var(--sub);
+        padding: .5rem .75rem; border-radius: 7px; font-size: .81rem;
+        text-align: left; display: flex; align-items: center; gap: .5rem;
+        transition: all .12s; width: 100%;
+      }
+      nav button:hover  { color: var(--text); background: rgba(255,255,255,.04); }
+      nav button.active { color: var(--accent); background: rgba(79,142,247,.12); font-weight: 600; }
+      nav button .ico   { width: 16px; text-align: center; font-size: .85rem; }
+
+      /* Main */
+      main { flex: 1; overflow-y: auto; padding: 2rem 2.5rem; }
+
+      .section { display: none; }
+      .section.active { display: block; }
+
+      .page-hd  { font-size: 1.2rem; font-weight: 700; margin-bottom: .25rem; }
+      .page-sub { color: var(--sub); font-size: .82rem; margin-bottom: 1.4rem; line-height: 1.55; }
+
+      /* Cards */
+      .card {
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1.1rem 1.3rem; margin-bottom: .9rem;
+      }
+      .card-hd {
+        font-size: .72rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .07em; color: var(--sub); margin-bottom: .85rem;
+      }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(255px,1fr)); gap: .8rem; }
+
+      /* Forms */
+      .row  { display: flex; gap: .65rem; flex-wrap: wrap; align-items: flex-end; }
+      .field { display: flex; flex-direction: column; gap: .28rem; flex: 1; min-width: 110px; }
+      label  { font-size: .72rem; color: var(--sub); font-weight: 500; }
+      input, select {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 7px; color: var(--text); padding: .45rem .65rem;
+        font-size: .82rem; width: 100%; outline: none; transition: border-color .15s;
+      }
+      input:focus, select:focus { border-color: var(--accent); }
+
+      /* Buttons */
+      .btn {
+        display: inline-flex; align-items: center; gap: .35rem;
+        padding: .46rem 1rem; border-radius: 7px; border: none;
+        cursor: pointer; font-size: .8rem; font-weight: 600;
+        transition: all .12s; white-space: nowrap;
+      }
+      .btn-primary { background: var(--accent); color: #fff; }
+      .btn-primary:hover { background: #3a7de8; }
+      .btn-ok { background: #059669; color: #fff; }
+      .btn-ok:hover { background: #047857; }
+      .btn-ghost { background: rgba(255,255,255,.06); color: var(--text); border: 1px solid var(--border); }
+      .btn-ghost:hover { background: rgba(255,255,255,.1); }
+      .btn:disabled { opacity: .38; cursor: not-allowed; }
+
+      /* Stat chips */
+      .stats { display: flex; gap: .55rem; flex-wrap: wrap; }
+      .stat {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 8px; padding: .55rem .85rem; min-width: 95px;
+      }
+      .stat-label { font-size: .66rem; color: var(--sub); text-transform: uppercase; letter-spacing: .04em; }
+      .stat-value { font-size: 1.15rem; font-weight: 700; color: var(--accent); margin-top: .08rem; }
+      .good { color: var(--green)  !important; }
+      .warn { color: var(--amber) !important; }
+      .bad  { color: var(--red)   !important; }
+
+      /* Banners */
+      .banner {
+        display: flex; align-items: center; gap: .5rem;
+        padding: .6rem .85rem; border-radius: 8px; font-size: .82rem;
+        margin-bottom: .85rem; border-left: 3px solid;
+      }
+      .b-ok   { background: rgba(52,211,153,.07);  border-color: var(--green); color: var(--green); }
+      .b-warn { background: rgba(251,191,36,.07);  border-color: var(--amber); color: var(--amber); }
+      .b-err  { background: rgba(248,113,113,.07); border-color: var(--red);   color: var(--red);   }
+      .b-info { background: rgba(79,142,247,.07);  border-color: var(--accent);color: var(--accent); }
+
+      /* Progress */
+      .prog { background: var(--surface); border-radius: 99px; height: 5px; overflow: hidden; margin: .45rem 0; }
+      .prog-fill { height: 100%; border-radius: 99px; transition: width .35s; }
+
+      /* Tables */
+      .tbl-wrap { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+      th {
+        text-align: left; padding: .45rem .7rem; color: var(--sub);
+        font-size: .67rem; text-transform: uppercase; letter-spacing: .05em;
+        border-bottom: 1px solid var(--border);
+      }
+      td { padding: .45rem .7rem; border-bottom: 1px solid rgba(37,40,64,.5); }
+      tr:last-child td { border-bottom: none; }
+      tr:hover td { background: rgba(79,142,247,.025); }
+
+      /* Mini bar chart */
+      .bars { display: flex; align-items: flex-end; gap: 3px; height: 66px; margin: .55rem 0; }
+      .bar-col { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+      .bar { background: var(--accent); border-radius: 3px 3px 0 0; width: 100%; min-height: 2px; }
+      .bar-lbl { font-size: .56rem; color: var(--sub); }
+
+      /* Misc */
+      hr { border: none; border-top: 1px solid var(--border); margin: .85rem 0; }
+      .sub { color: var(--sub); font-size: .78rem; }
+      .mt  { margin-top: .65rem; }
+      .truck-entry { display: flex; gap: .5rem; align-items: center; margin-bottom: .45rem; }
+
+      /* Toast */
+      #toast {
+        position: fixed; bottom: 1.2rem; right: 1.2rem;
+        background: var(--card); border: 1px solid var(--border);
+        border-radius: 8px; padding: .55rem .95rem; font-size: .8rem;
+        box-shadow: 0 4px 22px rgba(0,0,0,.55);
+        transform: translateY(50px) scale(.95); opacity: 0;
+        transition: all .2s; z-index: 999; max-width: 280px; pointer-events: none;
+      }
+      #toast.show { transform: translateY(0) scale(1); opacity: 1; }
+    </style>
+  </head>
+  <body>
+
+    <!-- Sidebar -->
+    <aside>
+      <div class="logo">Build<em>Sense</em></div>
+      <nav id="nav">
+        <div class="nav-section">Overview</div>
+        <button class="active" onclick="goto('materials')"><span class="ico">⬡</span> Materials</button>
+
+        <div class="nav-section">Workflow</div>
+        <button onclick="goto('initialize')"><span class="ico">✦</span> Initialize</button>
+        <button onclick="goto('order')"><span class="ico">↗</span> Smart Order</button>
+        <button onclick="goto('inventory')"><span class="ico">◎</span> Inventory</button>
+        <button onclick="goto('reorder')"><span class="ico">△</span> Reorder</button>
+        <button onclick="goto('complete')"><span class="ico">✓</span> Close Phase</button>
+
+        <div class="nav-section">Logistics</div>
+        <button onclick="goto('delivery')"><span class="ico">⬡</span> Delivery</button>
+      </nav>
+    </aside>
+
+    <!-- Content -->
+    <main>
+
+      <!-- Materials -->
+      <div class="section active" id="s-materials">
+        <div class="page-hd">Materials</div>
+        <div class="page-sub">All tracked construction materials with adaptive waste buffers.</div>
+        <div class="card">
+          <div class="card-hd">Add Material</div>
+          <div class="row">
+            <div class="field"><label>Name</label><input id="new-name" placeholder="e.g. Gravel"/></div>
+            <div class="field"><label>Unit</label><input id="new-unit" placeholder="e.g. tons"/></div>
+            <div class="field" style="max-width:95px;"><label>Buffer %</label><input id="new-buf" type="number" value="5" min="0" max="100"/></div>
+            <div class="field" style="max-width:115px;"><label>Weight/unit (kg)</label><input id="new-wt" type="number" value="1.0" step="0.1"/></div>
+            <div class="field" style="max-width:95px;"><label>Priority 1–10</label><input id="new-pri" type="number" value="5" min="1" max="10"/></div>
+            <button class="btn btn-primary" onclick="addMaterial()">Add</button>
+          </div>
+        </div>
+        <div id="mat-cards" class="grid"></div>
+      </div>
+
+      <!-- Initialize -->
+      <div class="section" id="s-initialize">
+        <div class="page-hd">Initialize Phase</div>
+        <div class="page-sub">Set planned quantities for a new project phase. Ordered amounts with buffer are calculated and saved immediately.</div>
+        <div class="card">
+          <div class="row" style="margin-bottom:.8rem;">
+            <div class="field" style="max-width:230px;">
+              <label>Phase Name</label>
+              <input id="p1-phase" placeholder="e.g. Foundation"/>
+            </div>
+          </div>
+          <div id="p1-rows"></div>
+          <div style="display:flex;gap:.45rem;margin-top:.55rem;">
+            <button class="btn btn-ghost" onclick="addP1Row()">+ Material</button>
+            <button class="btn btn-primary" onclick="submitP1()">Save</button>
+          </div>
+        </div>
+        <div id="p1-output"></div>
+      </div>
+
+      <!-- Smart Order -->
+      <div class="section" id="s-order">
+        <div class="page-hd">Smart Order</div>
+        <div class="page-sub">Enter planned quantity. The system applies the adaptive buffer to recommend a safe order amount.</div>
+        <div class="card">
+          <div class="row">
+            <div class="field"><label>Material</label><select id="p2-mat"></select></div>
+            <div class="field" style="max-width:170px;"><label>Planned Quantity</label><input id="p2-qty" type="number" placeholder="e.g. 200" step="any" min="0.001"/></div>
+            <button class="btn btn-primary" onclick="smartOrder()">Calculate</button>
+          </div>
+        </div>
+        <div id="p2-output"></div>
+      </div>
+
+      <!-- Inventory -->
+      <div class="section" id="s-inventory">
+        <div class="page-hd">Inventory Tracking</div>
+        <div class="page-sub">Log daily consumption and monitor live stock levels per phase.</div>
+
+        <div class="card">
+          <div class="card-hd">Log Usage</div>
+          <div class="row">
+            <div class="field"><label>Material</label><select id="p3-mat" onchange="loadPhases('p3')"></select></div>
+            <div class="field"><label>Phase</label><select id="p3-phase" onchange="renderPhaseSnapshot()"></select></div>
+            <div class="field" style="max-width:145px;"><label>Quantity Used</label><input id="p3-qty" type="number" placeholder="e.g. 18.5" step="any" min="0"/></div>
+            <div class="field" style="max-width:150px;"><label>Date</label><input id="p3-date" type="date"/></div>
+            <button class="btn btn-ok" onclick="logDailyUsage()">Log</button>
+          </div>
+        </div>
+
+        <div id="p3-output"></div>
+
+        <div class="card">
+          <div class="card-hd">Manual Snapshot</div>
+          <div class="row">
+            <div class="field"><label>Ordered Qty</label><input id="p3-ordered" type="number" placeholder="212" step="any"/></div>
+            <div class="field"><label>Consumed So Far</label><input id="p3-consumed" type="number" placeholder="150" step="any"/></div>
+            <div class="field"><label>Carry-in Stock</label><input id="p3-carryin" type="number" value="0" step="any"/></div>
+            <button class="btn btn-ghost" onclick="inventoryStatus()">Check</button>
+          </div>
+          <div id="p3-manual"></div>
+        </div>
+      </div>
+
+      <!-- Reorder -->
+      <div class="section" id="s-reorder">
+        <div class="page-hd">Reorder Check</div>
+        <div class="page-sub">Alerts when remaining stock hits the 20% threshold and suggests a top-up quantity.</div>
+        <div class="card">
+          <div class="row">
+            <div class="field"><label>Material</label><select id="p4-mat"></select></div>
+            <div class="field"><label>Ordered Qty</label><input id="p4-ordered" type="number" placeholder="212" step="any"/></div>
+            <div class="field"><label>Current Remaining</label><input id="p4-remaining" type="number" placeholder="40" step="any"/></div>
+            <div class="field"><label>Next Phase Planned</label><input id="p4-planned" type="number" placeholder="200" step="any"/></div>
+            <button class="btn btn-primary" onclick="reorderCheck()">Check</button>
+          </div>
+        </div>
+        <div id="p4-output"></div>
+      </div>
+
+      <!-- Close Phase -->
+      <div class="section" id="s-complete">
+        <div class="page-hd">Close Phase</div>
+        <div class="page-sub">Record actual consumption. Waste percentage is calculated and the buffer is adapted via EMA for future orders.</div>
+        <div class="card">
+          <div class="row" style="margin-bottom:.7rem;">
+            <div class="field"><label>Material</label><select id="p5-mat"></select></div>
+            <div class="field"><label>Phase Name</label><input id="p5-phase" placeholder="e.g. Foundation"/></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>Planned Qty</label><input id="p5-planned" type="number" placeholder="200" step="any"/></div>
+            <div class="field"><label>Ordered Qty</label><input id="p5-ordered" type="number" placeholder="212" step="any"/></div>
+            <div class="field"><label>Consumed Qty</label><input id="p5-consumed" type="number" placeholder="195" step="any"/></div>
+            <div class="field" style="max-width:120px;"><label>Carry-in</label><input id="p5-carryin" type="number" value="0" step="any"/></div>
+          </div>
+          <div style="display:flex;gap:.45rem;margin-top:.7rem;">
+            <button class="btn btn-primary" onclick="completePhase()">Close Phase</button>
+            <button class="btn btn-ghost" onclick="loadHistory()">View History</button>
+          </div>
+        </div>
+        <div id="p5-output"></div>
+        <div id="p5-history"></div>
+      </div>
+
+      <!-- Delivery -->
+      <div class="section" id="s-delivery">
+        <div class="page-hd">Delivery Planning</div>
+        <div class="page-sub">Allocate materials to trucks (knapsack), optimise routes (CVRP), estimate CO₂ per run.</div>
+        <div class="card">
+          <div class="card-hd">Dispatch Quantities</div>
+          <div id="d-mat-rows"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">Truck Fleet</div>
+          <div id="d-trucks"></div>
+          <div style="display:flex;gap:.5rem;align-items:center;margin-top:.7rem;flex-wrap:wrap;">
+            <button class="btn btn-ghost" onclick="addTruck()">+ Truck</button>
+            <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;cursor:pointer;color:var(--sub);">
+              <input type="checkbox" id="d-rain" style="width:13px;height:13px;accent-color:var(--accent);"/>
+              Rain expected
+            </label>
+            <button class="btn btn-primary" style="margin-left:auto;" onclick="planDelivery()">Plan Delivery</button>
+          </div>
+        </div>
+        <div id="d-output"></div>
+      </div>
+
+    </main>
+
+    <div id="toast"></div>
+
+    <script>
+      const API = "http://localhost:5001/api";
+      let materials = [];
+      const NAV_IDS = ["materials","initialize","order","inventory","reorder","complete","delivery"];
+
+      /* Navigation */
+      function goto(id) {
+        document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+        document.getElementById("s-" + id).classList.add("active");
+        document.querySelectorAll("nav button").forEach((b, i) => b.classList.toggle("active", NAV_IDS[i] === id));
+        if (id === "delivery")  buildDeliveryMatRows();
+        if (id === "inventory") loadPhases("p3");
+      }
+
+      /* Toast */
+      function toast(msg, type = "info") {
+        const t = document.getElementById("toast");
+        const c = { ok:"var(--green)", warn:"var(--amber)", err:"var(--red)", info:"var(--accent)" };
+        t.style.color = c[type] || c.info;
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(t._tid);
+        t._tid = setTimeout(() => t.classList.remove("show"), 3200);
+      }
+
+      /* API helper */
+      async function api(method, path, body) {
+        const opts = { method, headers: { "Content-Type": "application/json" } };
+        if (body) opts.body = JSON.stringify(body);
+        const r = await fetch(API + path, opts);
+        const json = await r.json();
+        if (!r.ok) throw new Error(json.error || r.statusText);
+        return json;
+      }
+
+      /* Materials */
+      async function loadMaterials() {
+        materials = await api("GET", "/materials");
+        renderMaterialCards();
+        populateSelects();
+      }
+
+      function populateSelects() {
+        const names = materials.map(m => m.name);
+        ["p2-mat","p3-mat","p4-mat","p5-mat"].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const cur = el.value;
+          el.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join("");
+          if (names.includes(cur)) el.value = cur;
+        });
+        loadPhases("p3");
+      }
+
+      function matByName(n) { return materials.find(m => m.name === n); }
+
+      function renderMaterialCards() {
+        document.getElementById("mat-cards").innerHTML = materials.map(m => {
+          const drift = (m.buffer_pct - m.baseline_buffer_pct).toFixed(2);
+          const dc = +drift > 0 ? "warn" : +drift < 0 ? "bad" : "good";
+          return `
+<div class="card" style="margin:0;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+    <div>
+      <div style="font-weight:700;font-size:.9rem;">${m.name}</div>
+      <div class="sub" style="margin-top:.12rem;">${m.unit} &middot; ${m.weight_per_unit}&thinsp;kg/unit &middot; Priority&thinsp;${m.priority}</div>
+    </div>
+    <button class="btn btn-ghost" style="font-size:.68rem;padding:.2rem .5rem;" onclick="deleteMaterial('${m.name}')">✕</button>
+  </div>
+  <div class="stats" style="margin-bottom:.7rem;">
+    <div class="stat"><div class="stat-label">Baseline</div><div class="stat-value">${m.baseline_buffer_pct.toFixed(1)}%</div></div>
+    <div class="stat"><div class="stat-label">Current</div><div class="stat-value ${dc}">${m.buffer_pct.toFixed(2)}%</div></div>
+    <div class="stat"><div class="stat-label">Drift</div><div class="stat-value ${dc}">${+drift>=0?"+":""}${drift}%</div></div>
+    <div class="stat"><div class="stat-label">Phases</div><div class="stat-value good">${m.phases_logged}</div></div>
+  </div>
+  <button class="btn btn-ghost" style="font-size:.72rem;" onclick="resetBuffer('${m.name}')">↺ Reset Buffer</button>
+</div>`;
+        }).join("");
+      }
+
+      async function addMaterial() {
+        const name = document.getElementById("new-name").value.trim();
+        const unit = document.getElementById("new-unit").value.trim();
+        if (!name || !unit) return toast("Name and unit required.", "warn");
+        try {
+          await api("POST", "/materials", {
+            name, unit,
+            baseline_buffer_pct: parseFloat(document.getElementById("new-buf").value),
+            weight_per_unit:     parseFloat(document.getElementById("new-wt").value),
+            priority:            parseInt(document.getElementById("new-pri").value),
+          });
+          document.getElementById("new-name").value = "";
+          document.getElementById("new-unit").value = "";
+          toast(`'${name}' added.`, "ok");
+          await loadMaterials();
+        } catch(e) { toast(e.message, "err"); }
+      }
+
+      async function deleteMaterial(name) {
+        if (!confirm(`Delete '${name}'?`)) return;
+        await api("DELETE", `/materials/${encodeURIComponent(name)}`);
+        toast(`'${name}' deleted.`, "ok");
+        await loadMaterials();
+      }
+
+      async function resetBuffer(name) {
+        await api("POST", `/materials/${encodeURIComponent(name)}/reset-buffer`);
+        toast(`Buffer for '${name}' reset.`, "ok");
+        await loadMaterials();
+      }
+
+      /* Initialize */
+      function addP1Row() {
+        const div = document.createElement("div");
+        div.className = "row";
+        div.style.marginBottom = ".45rem";
+        div.innerHTML = `
+<div class="field"><label>Material</label>
+  <select class="p1-ms">${materials.map(m=>`<option>${m.name}</option>`).join("")}</select>
+</div>
+<div class="field" style="max-width:155px;"><label>Planned Qty</label>
+  <input class="p1-q" type="number" placeholder="e.g. 200" step="any"/>
+</div>
+<button class="btn btn-ghost" style="padding:.42rem;" onclick="this.parentElement.remove()">✕</button>`;
+        document.getElementById("p1-rows").appendChild(div);
+      }
+
+      async function submitP1() {
+        const phase = document.getElementById("p1-phase").value.trim();
+        if (!phase) return toast("Enter a phase name.", "warn");
+        const rows = [...document.querySelectorAll("#p1-rows .row")];
+        if (!rows.length) return toast("Add at least one material.", "warn");
+        const plan = rows.map(r => ({
+          material:    r.querySelector(".p1-ms").value,
+          planned_qty: parseFloat(r.querySelector(".p1-q").value),
+        })).filter(r => r.planned_qty > 0);
+        if (!plan.length) return toast("Enter at least one valid quantity.", "warn");
+
+        const results = [], errors = [];
+        for (const p of plan) {
+          try { results.push(await api("POST", "/phase/initialize", { material: p.material, phase_name: phase, planned_qty: p.planned_qty })); }
+          catch(e) { errors.push(`${p.material}: ${e.message}`); }
+        }
+        await loadMaterials();
+        errors.length ? toast(`Saved ${results.length}, ${errors.length} error(s).`, "warn")
+                      : toast(`'${phase}' initialized for ${results.length} material(s).`, "ok");
+
+        document.getElementById("p1-output").innerHTML = `
+<div class="card">
+  <div class="banner ${errors.length ? "b-warn" : "b-ok"}">
+    ${errors.length ? "⚠" : "✓"} Phase <strong>${phase}</strong> — ${results.length} saved${errors.length?`, ${errors.length} failed`:""}.
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Material</th><th>Unit</th><th>Planned</th><th>Buffer</th><th>Recommended Order</th></tr></thead>
+    <tbody>
+      ${results.map(r => { const m = matByName(r.material); return `
+      <tr>
+        <td><strong>${r.material}</strong></td>
+        <td>${r.unit}</td>
+        <td>${r.planned_qty.toFixed(3)}</td>
+        <td>${m ? m.buffer_pct.toFixed(2)+"%" : "—"}</td>
+        <td class="good" style="font-weight:600;">${r.ordered_qty.toFixed(3)}</td>
+      </tr>`; }).join("")}
+      ${errors.map(e => `<tr><td colspan="5" class="bad">${e}</td></tr>`).join("")}
+    </tbody>
+  </table></div>
+</div>`;
+      }
+
+      /* Smart Order */
+      async function smartOrder() {
+        const mat = document.getElementById("p2-mat").value;
+        const qty = parseFloat(document.getElementById("p2-qty").value);
+        if (!qty || qty <= 0) return toast("Enter a valid planned quantity.", "warn");
+        try {
+          const r = await api("POST", "/phase/smart-order", { material: mat, planned_qty: qty });
+          const m = matByName(mat);
+          const drift = m ? (m.buffer_pct - m.baseline_buffer_pct).toFixed(2) : 0;
+          document.getElementById("p2-output").innerHTML = `
+<div class="card">
+  <div class="banner b-info">↗ Order recommendation for <strong>${r.material}</strong></div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Planned</div><div class="stat-value">${r.planned_qty.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Buffer</div><div class="stat-value warn">${r.buffer_pct.toFixed(2)}%</div></div>
+    <div class="stat"><div class="stat-label">Order Qty</div><div class="stat-value good">${r.recommended_qty.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Drift</div><div class="stat-value ${+drift>=0?"warn":"bad"}">${+drift>=0?"+":""}${drift}%</div></div>
+  </div>
+  <div class="sub mt">Unit: <strong style="color:var(--text)">${r.unit}</strong> &nbsp;&middot;&nbsp; Order <strong style="color:var(--green)">${r.recommended_qty.toFixed(3)} ${r.unit}</strong> to cover ${r.planned_qty} ${r.unit} planned.</div>
+</div>`;
+        } catch(e) { toast(e.message, "err"); }
+      }
+
+      /* Phase dropdown */
+      function loadPhases(prefix) {
+        const matName = document.getElementById(`${prefix}-mat`).value;
+        const m   = matByName(matName);
+        const sel = document.getElementById(`${prefix}-phase`);
+        if (!m || !m.history.length) {
+          sel.innerHTML = '<option value="-1">No phases yet</option>';
+          if (prefix === "p3") renderPhaseSnapshot();
+          return;
+        }
+        sel.innerHTML = m.history.map((p, i) => `<option value="${i}">${p.phase_name}</option>`).join("");
+        sel.value = m.history.length - 1;
+        if (prefix === "p3") renderPhaseSnapshot();
+      }
+
+      /* Phase snapshot */
+      function renderPhaseSnapshot() {
+        const matName = document.getElementById("p3-mat").value;
+        const phaseI  = parseInt(document.getElementById("p3-phase").value);
+        const m   = matByName(matName);
+        const out = document.getElementById("p3-output");
+        if (!m || isNaN(phaseI) || phaseI < 0 || !m.history[phaseI]) { out.innerHTML = ""; return; }
+
+        const h      = m.history[phaseI];
+        const usages = h.daily_usage || [];
+        const pct    = h.ordered_qty > 0 ? Math.min(100, h.consumed_qty / h.ordered_qty * 100) : 0;
+        const fc     = pct >= 90 ? "var(--red)" : pct >= 65 ? "var(--amber)" : "var(--green)";
+
+        let avgActive=0, avgCal=0, activeDays=0, calDays=0, daysLeft=null;
+        if (usages.length) {
+          const total = usages.reduce((s,e) => s+e.quantity, 0);
+          activeDays  = usages.length;
+          avgActive   = total / activeDays;
+          const sd    = usages.map(e => new Date(e.date+"T00:00:00")).sort((a,b)=>a-b);
+          calDays     = usages.length >= 2 ? Math.round((sd[sd.length-1]-sd[0])/86400000)+1 : 1;
+          avgCal      = total / calDays;
+          daysLeft    = avgCal > 0 ? (h.remaining_stock/avgCal).toFixed(1) : null;
+        }
+
+        const maxQ = Math.max(...usages.map(e=>e.quantity), 1);
+        const bars = usages.slice(-14).map(e => {
+          const ht = Math.max(2, Math.round((e.quantity/maxQ)*60));
+          return `<div class="bar-col"><div class="bar" style="height:${ht}px;" title="${e.date}: ${e.quantity}"></div><div class="bar-lbl">${e.date.slice(5)}</div></div>`;
+        }).join("");
+
+        out.innerHTML = `
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem;">
+    <span style="font-weight:700;">${h.phase_name} <span class="sub">&middot; ${matName}</span></span>
+    <span class="sub" style="font-size:.72rem;">${pct.toFixed(1)}% consumed</span>
+  </div>
+  <div class="prog"><div class="prog-fill" style="width:${pct}%;background:${fc};"></div></div>
+  <div class="stats" style="margin-top:.7rem;margin-bottom:${usages.length?".7rem":"0"};">
+    <div class="stat"><div class="stat-label">Ordered</div><div class="stat-value">${h.ordered_qty.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Consumed</div><div class="stat-value warn">${h.consumed_qty.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Remaining</div><div class="stat-value good">${h.remaining_stock.toFixed(3)}</div></div>
+  </div>
+  ${usages.length ? `
+  <hr>
+  <div class="stats" style="margin-bottom:.55rem;">
+    <div class="stat">
+      <div class="stat-label">Avg / Active Day</div>
+      <div class="stat-value">${avgActive.toFixed(2)}</div>
+      <div class="sub" style="font-size:.65rem;">${activeDays} log${activeDays!==1?"s":""}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Avg / Calendar Day</div>
+      <div class="stat-value warn">${avgCal.toFixed(2)}</div>
+      <div class="sub" style="font-size:.65rem;">${calDays}-day span</div>
+    </div>
+    ${daysLeft !== null ? `
+    <div class="stat">
+      <div class="stat-label">Est. Days Left</div>
+      <div class="stat-value ${parseFloat(daysLeft)<=3?"bad":parseFloat(daysLeft)<=7?"warn":"good"}">${daysLeft}d</div>
+      <div class="sub" style="font-size:.65rem;">at current rate</div>
+    </div>` : ""}
+  </div>
+  <div class="bars">${bars}</div>
+  <div class="tbl-wrap" style="margin-top:.45rem;"><table>
+    <thead><tr><th>Date</th><th>Used</th><th>Running Total</th><th>Remaining</th></tr></thead>
+    <tbody>${(()=>{ let run=0; return usages.map(e=>{ run+=e.quantity; return `<tr><td>${e.date}</td><td>${e.quantity}</td><td>${run.toFixed(3)}</td><td>${Math.max(0,h.ordered_qty-run).toFixed(3)}</td></tr>`; }).join(""); })()}</tbody>
+  </table></div>` : `<div class="sub mt">No usage logged yet for this phase.</div>`}
+</div>`;
+      }
+
+      async function logDailyUsage() {
+        const mat    = document.getElementById("p3-mat").value;
+        const phaseI = parseInt(document.getElementById("p3-phase").value);
+        const qty    = parseFloat(document.getElementById("p3-qty").value);
+        const dateV  = document.getElementById("p3-date").value;
+        if (isNaN(qty) || qty < 0) return toast("Enter a valid quantity.", "warn");
+        if (isNaN(phaseI) || phaseI < 0) return toast("No phase selected.", "warn");
+        try {
+          await api("POST", "/phase/log-daily-usage", { material:mat, phase_index:phaseI, qty_used:qty, date:dateV||undefined });
+          await loadMaterials(); loadPhases("p3"); renderPhaseSnapshot();
+          toast(`Logged ${qty} for ${mat}.`, "ok");
+        } catch(e) { toast(e.message, "err"); }
+      }
+
+      async function inventoryStatus() {
+        const ordered  = parseFloat(document.getElementById("p3-ordered").value);
+        const consumed = parseFloat(document.getElementById("p3-consumed").value);
+        const carryin  = parseFloat(document.getElementById("p3-carryin").value) || 0;
+        if (isNaN(ordered) || isNaN(consumed)) return toast("Fill in ordered and consumed.", "warn");
+        const r  = await api("POST", "/phase/inventory-status", { ordered_qty:ordered, consumed_qty:consumed, carry_in:carryin });
+        const pct = r.utilization_pct;
+        const fc  = pct >= 90 ? "var(--red)" : pct >= 65 ? "var(--amber)" : "var(--green)";
+        document.getElementById("p3-manual").innerHTML = `
+<div style="margin-top:.75rem;">
+  <div class="prog"><div class="prog-fill" style="width:${pct}%;background:${fc};"></div></div>
+  <div class="stats" style="margin-top:.55rem;">
+    <div class="stat"><div class="stat-label">Total Available</div><div class="stat-value">${r.total_available.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Used</div><div class="stat-value warn">${r.used.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Remaining</div><div class="stat-value good">${r.remaining.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Utilisation</div><div class="stat-value ${pct>=90?"bad":pct>=65?"warn":"good"}">${pct.toFixed(1)}%</div></div>
+  </div>
+</div>`;
+      }
+
+      /* Reorder */
+      async function reorderCheck() {
+        const mat  = document.getElementById("p4-mat").value;
+        const ord  = parseFloat(document.getElementById("p4-ordered").value);
+        const rem  = parseFloat(document.getElementById("p4-remaining").value);
+        const plan = parseFloat(document.getElementById("p4-planned").value);
+        if ([ord,rem,plan].some(isNaN)) return toast("Fill in all fields.", "warn");
+        const r      = await api("POST", "/phase/reorder-check", { material:mat, ordered_qty:ord, remaining:rem, planned_qty:plan });
+        const remPct = (r.remaining/ord*100).toFixed(1);
+        const fc     = r.alert ? "var(--red)" : "var(--green)";
+        document.getElementById("p4-output").innerHTML = `
+<div class="card">
+  <div class="banner ${r.alert?"b-warn":"b-ok"}">
+    ${r.alert ? `⚠ Reorder needed — stock critically low for <strong>${r.material}</strong>` : `✓ Stock sufficient for <strong>${r.material}</strong>`}
+  </div>
+  <div class="prog"><div class="prog-fill" style="width:${remPct}%;background:${fc};"></div></div>
+  <div class="sub" style="margin-bottom:.7rem;">${remPct}% of original order remaining</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Remaining</div><div class="stat-value ${r.alert?"bad":"good"}">${r.remaining.toFixed(3)} ${r.unit}</div></div>
+    <div class="stat"><div class="stat-label">Threshold (20%)</div><div class="stat-value warn">${r.threshold_qty.toFixed(3)} ${r.unit}</div></div>
+    ${r.alert ? `<div class="stat"><div class="stat-label">Suggested Reorder</div><div class="stat-value">${r.suggested_reorder_qty.toFixed(3)} ${r.unit}</div></div>` : ""}
+  </div>
+</div>`;
+      }
+
+      /* Close Phase */
+      async function completePhase() {
+        const mat      = document.getElementById("p5-mat").value;
+        const phase    = document.getElementById("p5-phase").value.trim();
+        const planned  = parseFloat(document.getElementById("p5-planned").value);
+        const ordered  = parseFloat(document.getElementById("p5-ordered").value);
+        const consumed = parseFloat(document.getElementById("p5-consumed").value);
+        const carryin  = parseFloat(document.getElementById("p5-carryin").value) || 0;
+        if (!phase) return toast("Enter a phase name.", "warn");
+        if ([planned,ordered,consumed].some(isNaN)) return toast("Fill in all qty fields.", "warn");
+        try {
+          const r = await api("POST", "/phase/complete", { material:mat, phase_name:phase, planned_qty:planned, ordered_qty:ordered, consumed_qty:consumed, carry_in:carryin });
+          await loadMaterials(); loadPhases("p3");
+          const dir = r.waste_pct >= 0 ? "over-ordered" : "under-ordered";
+          const wc  = Math.abs(r.waste_pct) < 5 ? "good" : r.waste_pct > 0 ? "warn" : "bad";
+          document.getElementById("p5-output").innerHTML = `
+<div class="card">
+  <div class="banner b-ok">✓ <strong>${r.phase_name}</strong> closed for <strong>${r.material}</strong></div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Planned</div><div class="stat-value">${r.planned_qty.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Ordered</div><div class="stat-value">${r.ordered_qty.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Consumed</div><div class="stat-value">${r.consumed_qty.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Remaining</div><div class="stat-value good">${r.remaining_stock.toFixed(3)}</div></div>
+    <div class="stat"><div class="stat-label">Waste</div><div class="stat-value ${wc}">${r.waste_pct>=0?"+":""}${r.waste_pct.toFixed(2)}%</div></div>
+    <div class="stat"><div class="stat-label">New Buffer</div><div class="stat-value warn">${r.new_buffer_pct.toFixed(2)}%</div></div>
+  </div>
+  <div class="sub mt">${dir.charAt(0).toUpperCase()+dir.slice(1)} by ${Math.abs(r.waste_pct).toFixed(2)}% &middot; Buffer ${r.baseline_buffer.toFixed(2)}% &rarr; ${r.new_buffer_pct.toFixed(2)}% &middot; ${r.phases_logged} phases total</div>
+</div>`;
+          toast("Phase closed. Buffer updated.", "ok");
+        } catch(e) { toast(e.message, "err"); }
+      }
+
+      async function loadHistory() {
+        const mat = document.getElementById("p5-mat").value;
+        const m   = matByName(mat);
+        const out = document.getElementById("p5-history");
+        if (!m || !m.history.length) { out.innerHTML=`<div class="card"><div class="sub">No history for ${mat}.</div></div>`; return; }
+        let totalOrd=0, totalCons=0;
+        const rows = m.history.map((h,i) => {
+          totalOrd  += h.ordered_qty;
+          totalCons += h.consumed_qty;
+          const wc = Math.abs(h.waste_pct)<5?"good":h.waste_pct>0?"warn":"bad";
+          return `<tr>
+<td class="sub">${i+1}</td>
+<td><strong>${h.phase_name}</strong></td>
+<td>${h.planned_qty.toFixed(3)}</td>
+<td>${h.ordered_qty.toFixed(3)}</td>
+<td>${h.consumed_qty.toFixed(3)}</td>
+<td>${h.remaining_stock.toFixed(3)}</td>
+<td class="${wc}">${h.waste_pct>=0?"+":""}${h.waste_pct.toFixed(2)}%</td>
+<td class="sub">${(h.daily_usage||[]).length}</td>
+</tr>`;
+        }).join("");
+        const ow = totalOrd > 0 ? ((totalOrd-totalCons)/totalOrd*100).toFixed(2) : 0;
+        out.innerHTML = `
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;">
+    <div style="font-weight:700;">${m.name} — History</div>
+    <div class="sub">Buffer ${m.baseline_buffer_pct.toFixed(2)}% &rarr; ${m.buffer_pct.toFixed(2)}%</div>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>#</th><th>Phase</th><th>Planned</th><th>Ordered</th><th>Consumed</th><th>Remaining</th><th>Waste</th><th>Logs</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr style="font-weight:700;border-top:2px solid var(--border);">
+      <td colspan="2">Totals</td><td>—</td>
+      <td>${totalOrd.toFixed(3)}</td><td>${totalCons.toFixed(3)}</td><td>—</td>
+      <td class="${+ow>=0?"warn":"bad"}">${+ow>=0?"+":""}${ow}%</td><td>—</td>
+    </tr></tfoot>
+  </table></div>
+</div>`;
+      }
+
+      /* Delivery */
+      let truckCount = 0;
+
+      function buildDeliveryMatRows() {
+        document.getElementById("d-mat-rows").innerHTML = materials.map(m => `
+<div class="row" style="margin-bottom:.38rem;">
+  <div class="field" style="max-width:155px;flex:none;">
+    <label style="font-weight:600;">${m.name}</label>
+    <div class="sub" style="font-size:.68rem;">${m.unit} &middot; ${m.weight_per_unit}kg/unit</div>
+  </div>
+  <div class="field" style="max-width:125px;">
+    <label>Dispatch Qty</label>
+    <input id="d-qty-${m.name}" type="number" value="0" min="0" step="any"/>
+  </div>
+</div>`).join("");
+      }
+
+      function addTruck() {
+        truckCount++;
+        const div = document.createElement("div");
+        div.className = "truck-entry"; div.id = `truck-${truckCount}`;
+        div.innerHTML = `
+<div class="field" style="max-width:145px;"><label>Truck ID</label><input class="t-id" value="TRK-0${truckCount}"/></div>
+<div class="field" style="max-width:135px;"><label>Capacity (kg)</label><input class="t-cap" type="number" value="10000" min="1"/></div>
+<button class="btn btn-ghost" style="padding:.38rem;" onclick="this.parentElement.remove()">✕</button>`;
+        document.getElementById("d-trucks").appendChild(div);
+      }
+
+      async function planDelivery() {
+        const oq = {};
+        materials.forEach(m => { const v = parseFloat(document.getElementById(`d-qty-${m.name}`)?.value)||0; if(v>0) oq[m.name]=v; });
+        if (!Object.keys(oq).length) return toast("Add at least one dispatch quantity.", "warn");
+        const truckEls = document.querySelectorAll(".truck-entry");
+        if (!truckEls.length) return toast("Add at least one truck.", "warn");
+        const trucks = [...truckEls].map(el => ({ truck_id:el.querySelector(".t-id").value.trim(), capacity_kg:parseInt(el.querySelector(".t-cap").value) }));
+        try {
+          const results = await api("POST", "/delivery/plan", { order_quantities:oq, trucks, rain_expected:document.getElementById("d-rain").checked });
+          document.getElementById("d-output").innerHTML = `<div class="grid">${results.map(a => {
+            const mats = Object.entries(a.materials).map(([k,v])=>`${k}\xd7${v}`).join(", ") || "Empty";
+            const u = a.utilization_pct;
+            const fc = u<40?"var(--red)":u<70?"var(--amber)":"var(--green)";
+            return `
+<div class="card" style="margin:0;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem;">
+    <span style="font-weight:700;">🚛 ${a.truck_id}</span>
+    <span class="sub" style="font-size:.72rem;">${a.capacity_kg.toLocaleString()} kg cap</span>
+  </div>
+  <div class="prog" style="margin-bottom:.7rem;"><div class="prog-fill" style="width:${u}%;background:${fc};"></div></div>
+  <div class="stats" style="margin-bottom:.7rem;">
+    <div class="stat"><div class="stat-label">Loaded</div><div class="stat-value">${a.used_kg.toLocaleString()} kg</div></div>
+    <div class="stat"><div class="stat-label">Util.</div><div class="stat-value ${u<40?"bad":u<70?"warn":"good"}">${u.toFixed(1)}%</div></div>
+    <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${a.distance_km.toLocaleString()} km</div></div>
+    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value ${a.co2_kg>1000?"bad":a.co2_kg>200?"warn":"good"}">${a.co2_kg.toLocaleString()} kg</div></div>
+  </div>
+  <div class="sub" style="font-size:.74rem;margin-bottom:.28rem;"><strong style="color:var(--sub);">Materials</strong> ${mats}</div>
+  <div class="sub" style="font-size:.74rem;"><strong style="color:var(--sub);">Route</strong> ${a.route.join(" \u2192 ")}</div>
+</div>`;
+          }).join("")}</div>`;
+        } catch(e) { toast(e.message, "err"); }
+      }
+
+      /* Init */
+      window.addEventListener("DOMContentLoaded", async () => {
+        document.getElementById("p3-date").valueAsDate = new Date();
+        try {
+          await loadMaterials();
+          addTruck(); addTruck();
+        } catch(e) {
+          document.getElementById("mat-cards").innerHTML = `
+<div class="card" style="grid-column:1/-1;">
+  <div class="banner b-err">⚠ Cannot connect to API at ${API}. Start the server: python api/server.py</div>
+</div>`;
+        }
+      });
+    </script>
+  </body>
+</html>

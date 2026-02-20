@@ -1,0 +1,269 @@
+{
+  "Cement": {
+    "name": "Cement",
+    "unit": "bags",
+    "baseline_buffer_pct": 6.0,
+    "buffer_pct": 6.0,
+    "weight_per_unit": 50.0,
+    "priority": 9,
+    "history": [
+      {
+        "phase_name": "Foundation",
+        "planned_qty": 200.0,
+        "ordered_qty": 212.0,
+        "consumed_qty": 301.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 0.0,
+        "daily_usage": [
+          {
+            "date": "2026-02-20",
+            "quantity": 1.0
+          },
+          {
+            "date": "2026-02-20",
+            "quantity": 150.0
+          },
+          {
+            "date": "2026-02-21",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-22",
+            "quantity": 0.0
+          },
+          {
+            "date": "2026-02-23",
+            "quantity": 10.0
+          },
+          {
+            "date": "2026-02-23",
+            "quantity": 10.0
+          },
+          {
+            "date": "2026-02-23",
+            "quantity": 10.0
+          },
+          {
+            "date": "2026-02-24",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-24",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-24",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-24",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-24",
+            "quantity": 20.0
+          }
+        ]
+      },
+      {
+        "phase_name": "Demo",
+        "planned_qty": 1.0,
+        "ordered_qty": 1.06,
+        "consumed_qty": 1.06,
+        "waste_pct": 0.0,
+        "remaining_stock": 0.0,
+        "daily_usage": [
+          {
+            "date": "2026-02-20",
+            "quantity": 1.0
+          },
+          {
+            "date": "2026-02-20",
+            "quantity": 0.06
+          }
+        ]
+      },
+      {
+        "phase_name": "BASE",
+        "planned_qty": 150.0,
+        "ordered_qty": 159.0,
+        "consumed_qty": 159.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 0.0,
+        "daily_usage": [
+          {
+            "date": "2026-02-20",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-23",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-25",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-25",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-25",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-25",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-05-01",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-03-02",
+            "quantity": 19.0
+          }
+        ]
+      },
+      {
+        "phase_name": "Foundations",
+        "planned_qty": 200.0,
+        "ordered_qty": 212.0,
+        "consumed_qty": 212.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 0.0,
+        "daily_usage": [
+          {
+            "date": "2026-02-20",
+            "quantity": 40.0
+          },
+          {
+            "date": "2026-02-21",
+            "quantity": 40.0
+          },
+          {
+            "date": "2026-02-25",
+            "quantity": 10.0
+          },
+          {
+            "date": "2026-02-20",
+            "quantity": 10.0
+          },
+          {
+            "date": "2026-02-20",
+            "quantity": 40.0
+          },
+          {
+            "date": "2026-02-20",
+            "quantity": 40.0
+          },
+          {
+            "date": "2026-02-20",
+            "quantity": 32.0
+          }
+        ]
+      }
+    ]
+  },
+  "Brick": {
+    "name": "Brick",
+    "unit": "pcs",
+    "baseline_buffer_pct": 10.0,
+    "buffer_pct": 10.0,
+    "weight_per_unit": 3.0,
+    "priority": 7,
+    "history": [
+      {
+        "phase_name": "Foundation",
+        "planned_qty": 100.0,
+        "ordered_qty": 110.0,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 110.0,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "BASE",
+        "planned_qty": 200.0,
+        "ordered_qty": 220.0,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 220.0,
+        "daily_usage": []
+      }
+    ]
+  },
+  "Steel": {
+    "name": "Steel",
+    "unit": "kg",
+    "baseline_buffer_pct": 2.0,
+    "buffer_pct": 2.0,
+    "weight_per_unit": 1.0,
+    "priority": 10,
+    "history": []
+  },
+  "Sand": {
+    "name": "Sand",
+    "unit": "tons",
+    "baseline_buffer_pct": 8.0,
+    "buffer_pct": 8.0,
+    "weight_per_unit": 1000.0,
+    "priority": 6,
+    "history": []
+  },
+  "Aggregate": {
+    "name": "Aggregate",
+    "unit": "tons",
+    "baseline_buffer_pct": 5.0,
+    "buffer_pct": 5.0,
+    "weight_per_unit": 1000.0,
+    "priority": 5,
+    "history": [
+      {
+        "phase_name": "Demolition",
+        "planned_qty": 1000.0,
+        "ordered_qty": 1050.0,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 1050.0,
+        "daily_usage": []
+      }
+    ]
+  },
+  "Paint": {
+    "name": "Paint",
+    "unit": "litres",
+    "baseline_buffer_pct": 7.0,
+    "buffer_pct": 7.0,
+    "weight_per_unit": 1.2,
+    "priority": 4,
+    "history": []
+  },
+  "Wood": {
+    "name": "Wood",
+    "unit": "sq ft",
+    "baseline_buffer_pct": 12.0,
+    "buffer_pct": 12.0,
+    "weight_per_unit": 5.0,
+    "priority": 6,
+    "history": []
+  },
+  "Glass": {
+    "name": "Glass",
+    "unit": "sq ft",
+    "baseline_buffer_pct": 5.0,
+    "buffer_pct": 5.0,
+    "weight_per_unit": 2.5,
+    "priority": 5,
+    "history": []
+  },
+  "Gravel": {
+    "name": "Gravel",
+    "unit": "kg/unit",
+    "baseline_buffer_pct": 7.0,
+    "buffer_pct": 7.0,
+    "weight_per_unit": 5.0,
+    "priority": 3,
+    "history": []
+  }
+}

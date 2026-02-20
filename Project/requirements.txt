@@ -1,0 +1,4 @@
+numpy>=1.24
+ortools>=9.4
+folium>=0.14
+pandas>=2.0
