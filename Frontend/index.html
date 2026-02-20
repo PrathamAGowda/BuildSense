@@ -385,6 +385,28 @@
         margin-bottom: 0.45rem;
       }
 
+      /* Delivery map */
+      #d-map-container {
+        border-radius: var(--radius);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        margin-bottom: 1rem;
+      }
+      #delivery-map {
+        width: 100%;
+        height: 420px;
+        background: var(--surface);
+      }
+
+      /* Role-colour legend dots in stop list */
+      .stop-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        border: 2px solid rgba(255, 255, 255, 0.25);
+      }
+
       /* Toast */
       #toast {
         position: fixed;
@@ -403,9 +425,15 @@
         max-width: 280px;
         pointer-events: none;
       }
-      #toast.show { transform: translateY(0) scale(1); opacity: 1; }
+      #toast.show {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+    />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   </head>
   <body>
@@ -762,9 +790,169 @@
       <div class="section" id="s-delivery">
         <div class="page-hd">Delivery Planning</div>
         <div class="page-sub">
-          Allocate materials to trucks (knapsack), optimise routes (CVRP),
-          estimate CO₂ per run.
+          Build your route, allocate materials to trucks, and get the shortest
+          delivery path with CO₂ estimates.
         </div>
+
+        <!-- Route Builder -->
+        <div class="card">
+          <div class="card-hd">Route Builder</div>
+          <div class="sub" style="margin-bottom: 0.8rem; font-size: 0.78rem">
+            Search for a city or address, then click
+            <strong>Set as Source</strong>, <strong>Add Stop</strong>, or
+            <strong>Set as Destination</strong>.
+          </div>
+
+          <!-- Search bar -->
+          <div
+            class="row"
+            style="gap: 0.5rem; align-items: flex-end; flex-wrap: wrap"
+          >
+            <div class="field" style="flex: 1; min-width: 200px">
+              <label>Search location</label>
+              <input
+                id="geo-input"
+                type="text"
+                placeholder="e.g. Mumbai, India"
+                onkeydown="if (event.key === 'Enter') geocodeSearch();"
+                style="width: 100%"
+              />
+            </div>
+            <button
+              class="btn btn-ghost"
+              onclick="geocodeSearch()"
+              style="margin-bottom: 0"
+            >
+              🔍 Search
+            </button>
+          </div>
+
+          <!-- Search results -->
+          <div
+            id="geo-results"
+            style="
+              display: none;
+              margin-top: 0.5rem;
+              border: 1px solid var(--border);
+              border-radius: var(--radius);
+              overflow: hidden;
+            "
+          ></div>
+
+          <!-- Add-stop actions (shown once a candidate is selected) -->
+          <div
+            style="
+              margin-top: 0.6rem;
+              display: flex;
+              gap: 0.4rem;
+              flex-wrap: wrap;
+            "
+          >
+            <button
+              class="btn btn-ghost"
+              onclick="addPendingAsStop('source')"
+              style="
+                font-size: 0.76rem;
+                display: flex;
+                align-items: center;
+                gap: 0.35rem;
+              "
+            >
+              <span
+                style="
+                  display: inline-block;
+                  width: 10px;
+                  height: 10px;
+                  border-radius: 50%;
+                  background: #27ae60;
+                  flex-shrink: 0;
+                "
+              ></span>
+              Set as Source
+            </button>
+            <button
+              class="btn btn-ghost"
+              onclick="addPendingAsStop('stop')"
+              style="
+                font-size: 0.76rem;
+                display: flex;
+                align-items: center;
+                gap: 0.35rem;
+              "
+            >
+              <span
+                style="
+                  display: inline-block;
+                  width: 10px;
+                  height: 10px;
+                  border-radius: 50%;
+                  background: #2980b9;
+                  flex-shrink: 0;
+                "
+              ></span>
+              Add as Stop
+            </button>
+            <button
+              class="btn btn-ghost"
+              onclick="addPendingAsStop('dest')"
+              style="
+                font-size: 0.76rem;
+                display: flex;
+                align-items: center;
+                gap: 0.35rem;
+              "
+            >
+              <span
+                style="
+                  display: inline-block;
+                  width: 10px;
+                  height: 10px;
+                  border-radius: 50%;
+                  background: #c0392b;
+                  flex-shrink: 0;
+                "
+              ></span>
+              Set as Destination
+            </button>
+          </div>
+
+          <!-- Stop list -->
+          <div
+            id="route-stops"
+            style="
+              margin-top: 0.9rem;
+              display: flex;
+              flex-direction: column;
+              gap: 0.35rem;
+            "
+          ></div>
+
+          <!-- Clear + summary row -->
+          <div
+            style="
+              margin-top: 0.7rem;
+              display: flex;
+              gap: 0.5rem;
+              flex-wrap: wrap;
+              align-items: center;
+            "
+          >
+            <button
+              class="btn btn-ghost"
+              onclick="clearRoute()"
+              style="font-size: 0.76rem"
+            >
+              ✕ Clear Route
+            </button>
+            <span
+              id="route-summary"
+              class="sub"
+              style="font-size: 0.76rem"
+            ></span>
+          </div>
+        </div>
+
+        <!-- Dispatch + Trucks -->
         <div class="card">
           <div class="card-hd">Dispatch Quantities</div>
           <div id="d-mat-rows"></div>
@@ -808,6 +996,7 @@
             </button>
           </div>
         </div>
+
         <div id="d-map-container">
           <div id="delivery-map"></div>
         </div>
@@ -839,7 +1028,10 @@
         document
           .querySelectorAll("nav button")
           .forEach((b, i) => b.classList.toggle("active", NAV_IDS[i] === id));
-        if (id === "delivery") buildDeliveryMatRows();
+        if (id === "delivery") {
+          buildDeliveryMatRows();
+          initDeliveryMap();
+        }
         if (id === "inventory") loadPhases("p3");
       }
 
@@ -1488,11 +1680,16 @@
 </div>`;
       }
 
-      /* Delivery */
+      /* ─── Delivery ─── */
       let truckCount = 0;
       let deliveryMap = null;
-      let mapMarkers = [];
-      let mapPolylines = [];
+      let mapMarkers = []; // all Leaflet markers currently on map
+      let mapPolylines = []; // all Leaflet polylines currently on map
+
+      /* ── Route Builder state ── */
+      let routeStops = []; // [{name, lat, lon, role:'source'|'stop'|'dest'}]
+      let pendingPlace = null; // {name, lat, lon} — last geocode candidate selected
+      let previewMarker = null; // single Leaflet marker for geocode preview
 
       function buildDeliveryMatRows() {
         document.getElementById("d-mat-rows").innerHTML = materials
@@ -1524,119 +1721,341 @@
         document.getElementById("d-trucks").appendChild(div);
       }
 
+      /* ── Map helpers ── */
       function initDeliveryMap() {
         if (deliveryMap) return;
-        const defaultCenter = [20.5937, 78.9629]; // India center [lat, lng]
-        deliveryMap = L.map('delivery-map').setView(defaultCenter, 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
-          maxZoom: 19
+        deliveryMap = L.map("delivery-map").setView([20.5937, 78.9629], 5);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap contributors",
+          maxZoom: 19,
         }).addTo(deliveryMap);
       }
 
-      function clearMapMarkers() {
-        mapMarkers.forEach(m => deliveryMap.removeLayer(m));
-        mapPolylines.forEach(p => deliveryMap.removeLayer(p));
+      function clearMapLayers() {
+        mapMarkers.forEach((m) => deliveryMap.removeLayer(m));
+        mapPolylines.forEach((p) => deliveryMap.removeLayer(p));
         mapMarkers = [];
         mapPolylines = [];
       }
 
-      function displayTrucksOnMap(results) {
-        if (!deliveryMap) initDeliveryMap();
-        clearMapMarkers();
-        
-        // Sample coordinates for major Indian cities [lat, lng]
-        const cityCoords = {
-          "Bangalore": [12.9716, 77.5946],
-          "Coimbatore": [11.0081, 76.9366],
-          "Goa": [15.4909, 73.8278],
-          "Mumbai": [19.0760, 72.8777],
-          "Ahmedabad": [23.0225, 72.5714],
-          "Delhi": [28.7041, 77.1025],
-          "Kolkata": [22.5726, 88.3639],
-          "Hyderabad": [17.3850, 78.4867],
-          "Chennai": [13.0827, 80.2707],
-          "Depot (Bangalore)": [12.9716, 77.5946]
-        };
+      /* ── Geocoding ── */
+      async function geocodeSearch() {
+        const q = document.getElementById("geo-input").value.trim();
+        if (!q) return toast("Enter a place name to search.", "warn");
+        const resultsEl = document.getElementById("geo-results");
+        resultsEl.innerHTML = `<div style="padding:.5rem .7rem;color:var(--sub);font-size:.8rem;">Searching…</div>`;
+        resultsEl.style.display = "block";
+        try {
+          const data = await api("GET", `/geocode?q=${encodeURIComponent(q)}`);
+          if (!data.length) {
+            resultsEl.innerHTML = `<div style="padding:.5rem .7rem;color:var(--sub);font-size:.8rem;">No results found.</div>`;
+            return;
+          }
+          resultsEl.innerHTML = data
+            .map(
+              (c, i) => `
+<div onclick="selectGeocandidate(${i})" style="
+  padding:.45rem .7rem;cursor:pointer;font-size:.8rem;
+  border-bottom:1px solid var(--border);
+  transition:background .15s;"
+  onmouseover="this.style.background='var(--surface2)'"
+  onmouseout="this.style.background=''">
+  <span style="font-weight:600;">${c.name}</span>
+  <span class="sub" style="font-size:.72rem;margin-left:.4rem;">${c.display_name}</span>
+</div>`,
+            )
+            .join("");
+          /* store candidates for selectGeocandidate */
+          resultsEl._candidates = data;
+        } catch (e) {
+          resultsEl.innerHTML = `<div style="padding:.5rem .7rem;color:var(--red);font-size:.8rem;">Error: ${e.message}</div>`;
+        }
+      }
 
-        const colors = ["#FF5733", "#33FF57", "#3357FF", "#FF33F5", "#F5FF33", "#FF9500"];
+      function selectGeocandidate(idx) {
+        const c = document.getElementById("geo-results")._candidates[idx];
+        pendingPlace = { name: c.name, lat: c.lat, lon: c.lon };
+        document.getElementById("geo-results").style.display = "none";
+        document.getElementById("geo-input").value = c.name;
+
+        /* preview marker on map */
+        if (!deliveryMap) initDeliveryMap();
+        if (previewMarker) deliveryMap.removeLayer(previewMarker);
+        previewMarker = L.marker([c.lat, c.lon], {
+          icon: L.divIcon({
+            className: "",
+            html: `<div style="
+              background:#8e44ad;
+              width:26px;height:26px;
+              border-radius:50%;
+              border:3px solid #fff;
+              box-shadow:0 2px 8px rgba(0,0,0,.5);
+              display:flex;align-items:center;justify-content:center;
+              color:#fff;font-size:14px;font-weight:800;
+            ">?</div>
+            <div style="
+              margin-top:2px;background:#8e44ad;color:#fff;
+              font-size:9px;font-weight:700;padding:1px 4px;
+              border-radius:3px;white-space:nowrap;
+              box-shadow:0 1px 4px rgba(0,0,0,.4);font-family:sans-serif;
+              max-width:90px;overflow:hidden;text-overflow:ellipsis;
+            ">${c.name}</div>`,
+            iconSize: [26, 44],
+            iconAnchor: [13, 13],
+          }),
+        })
+          .addTo(deliveryMap)
+          .bindPopup(
+            `<div style="font-size:12px;"><b>${c.name}</b><br/><span style="color:#666;">${c.lat.toFixed(4)}, ${c.lon.toFixed(4)}</span><br/><span style="color:#8e44ad;font-size:11px;">Click a role button to add</span></div>`,
+          )
+          .openPopup();
+        deliveryMap.setView([c.lat, c.lon], Math.max(deliveryMap.getZoom(), 8));
+
+        /* show action buttons hint */
+        toast(
+          `"${c.name}" selected — set it as Source, Stop, or Destination.`,
+          "info",
+        );
+      }
+
+      function addPendingAsStop(role) {
+        if (!pendingPlace)
+          return toast("Search and select a location first.", "warn");
+
+        /* enforce single source / destination */
+        if (role === "source" && routeStops.some((s) => s.role === "source")) {
+          routeStops = routeStops.filter((s) => s.role !== "source");
+        }
+        if (role === "dest" && routeStops.some((s) => s.role === "dest")) {
+          routeStops = routeStops.filter((s) => s.role !== "dest");
+        }
+
+        routeStops.push({ ...pendingPlace, role });
+        pendingPlace = null;
+        if (previewMarker) {
+          deliveryMap.removeLayer(previewMarker);
+          previewMarker = null;
+        }
+        document.getElementById("geo-input").value = "";
+        renderStopsList();
+        drawRoutePreview();
+      }
+
+      function removeStop(idx) {
+        routeStops.splice(idx, 1);
+        renderStopsList();
+        drawRoutePreview();
+      }
+
+      const roleBadge = {
+        source: ["🟢", "#27ae60", "Source / Depot"],
+        stop: ["🔵", "#2980b9", "Stop"],
+        dest: ["🔴", "#c0392b", "Destination"],
+      };
+
+      function renderStopsList() {
+        const el = document.getElementById("route-stops");
+        if (!routeStops.length) {
+          el.innerHTML = "";
+          updateRouteSummary();
+          return;
+        }
+
+        /* sort: source first, then stops, then dest */
+        const order = { source: 0, stop: 1, dest: 2 };
+        const sorted = [...routeStops].sort(
+          (a, b) => order[a.role] - order[b.role],
+        );
+        routeStops = sorted;
+
+        el.innerHTML = routeStops
+          .map((s, i) => {
+            const [, col, label] = roleBadge[s.role];
+            return `
+<div style="display:flex;align-items:center;gap:.5rem;padding:.38rem .6rem;border-radius:6px;background:var(--surface2);font-size:.79rem;border-left:3px solid ${col};">
+  <div class="stop-dot" style="background:${col};"></div>
+  <span style="flex:1;font-weight:600;">${s.name}</span>
+  <span style="color:${col};font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;">${label}</span>
+  <span style="color:var(--sub);font-size:.67rem;">${s.lat.toFixed(3)}, ${s.lon.toFixed(3)}</span>
+  <button onclick="removeStop(${i})" style="background:none;border:none;color:var(--sub);cursor:pointer;font-size:.9rem;padding:0 .2rem;">✕</button>
+</div>`;
+          })
+          .join("");
+        updateRouteSummary();
+      }
+
+      function updateRouteSummary() {
+        const el = document.getElementById("route-summary");
+        const src = routeStops.find((s) => s.role === "source");
+        const dest = routeStops.find((s) => s.role === "dest");
+        const stops = routeStops.filter((s) => s.role === "stop");
+        if (!src && !dest) {
+          el.textContent = "";
+          return;
+        }
+        el.textContent = `${src ? src.name : "?"} → ${stops.map((s) => s.name).join(" → ")}${stops.length ? " → " : ""} ${dest ? dest.name : "?"}`;
+      }
+
+      function drawRoutePreview() {
+        if (!deliveryMap) initDeliveryMap();
+        clearMapLayers();
+        if (routeStops.length < 2) return;
+
+        const order = { source: 0, stop: 1, dest: 2 };
+        const sorted = [...routeStops].sort(
+          (a, b) => order[a.role] - order[b.role],
+        );
+        const coords = sorted.map((s) => [s.lat, s.lon]);
+
+        /* dashed preview polyline */
+        const poly = L.polyline(coords, {
+          color: "#7f8c8d",
+          weight: 2,
+          dashArray: "7 5",
+          opacity: 0.6,
+        }).addTo(deliveryMap);
+        mapPolylines.push(poly);
+
+        const bounds = L.latLngBounds();
+        sorted.forEach((s, i) => {
+          const [, col, label] = roleBadge[s.role];
+          /* larger pin for source/dest, medium for stops */
+          const isEndpoint = s.role === "source" || s.role === "dest";
+          const sz = isEndpoint ? 32 : 24;
+          const marker = L.marker([s.lat, s.lon], {
+            icon: L.divIcon({
+              className: "",
+              html: `<div style="
+                background:${col};
+                width:${sz}px;height:${sz}px;
+                border-radius:50%;
+                border:3px solid #fff;
+                box-shadow:0 2px 8px rgba(0,0,0,.55);
+                display:flex;align-items:center;justify-content:center;
+                color:#fff;font-size:${isEndpoint ? 13 : 11}px;font-weight:800;
+                font-family:sans-serif;
+              ">${i + 1}</div>
+              <div style="
+                margin-top:2px;
+                background:${col};
+                color:#fff;
+                font-size:9px;font-weight:700;
+                padding:1px 4px;border-radius:3px;
+                white-space:nowrap;
+                box-shadow:0 1px 4px rgba(0,0,0,.4);
+                font-family:sans-serif;
+                max-width:90px;overflow:hidden;text-overflow:ellipsis;
+              ">${s.name}</div>`,
+              iconSize: [sz, sz + 18],
+              iconAnchor: [sz / 2, sz / 2],
+            }),
+          }).addTo(deliveryMap).bindPopup(`
+              <div style="font-size:12px;min-width:140px;">
+                <div style="color:${col};font-weight:700;font-size:13px;margin-bottom:3px;">${s.name}</div>
+                <div style="color:#666;">${label}</div>
+                <div style="color:#999;font-size:11px;margin-top:3px;">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</div>
+              </div>`);
+          mapMarkers.push(marker);
+          bounds.extend([s.lat, s.lon]);
+        });
+        deliveryMap.fitBounds(bounds, { padding: [60, 60] });
+      }
+
+      function clearRoute() {
+        routeStops = [];
+        pendingPlace = null;
+        if (previewMarker && deliveryMap) {
+          deliveryMap.removeLayer(previewMarker);
+          previewMarker = null;
+        }
+        document.getElementById("geo-input").value = "";
+        document.getElementById("geo-results").style.display = "none";
+        renderStopsList();
+        if (deliveryMap) clearMapLayers();
+        document.getElementById("d-output").innerHTML = "";
+      }
+
+      /* ── Results map ── */
+      function displayTrucksOnMap(results, stopCoords) {
+        if (!deliveryMap) initDeliveryMap();
+        clearMapLayers();
+
+        const colors = [
+          "#e74c3c",
+          "#2ecc71",
+          "#3498db",
+          "#e67e22",
+          "#9b59b6",
+          "#1abc9c",
+          "#f39c12",
+          "#e91e63",
+        ];
         const bounds = L.latLngBounds();
 
         results.forEach((truck, idx) => {
           const color = colors[idx % colors.length];
           const route = truck.route || [];
-          
-          // Get coordinates for route
-          const routeCoords = route.map(loc => 
-            cityCoords[loc] || [20 + Math.random() * 10, 75 + Math.random() * 15]
-          );
-          
-          if (routeCoords.length > 0) {
-            // Draw polyline for truck route
-            const polyline = L.polyline(routeCoords, {
-              color: color,
-              weight: 3,
-              opacity: 0.8,
-              dashArray: '5, 5'
-            }).addTo(deliveryMap);
-            mapPolylines.push(polyline);
 
-            // Add markers for each stop
-            routeCoords.forEach((coord, stopIdx) => {
-              const isStart = stopIdx === 0;
-              const isEnd = stopIdx === routeCoords.length - 1;
-              
-              const markerIcon = L.divIcon({
-                className: 'custom-marker',
-                html: `<div style="
-                  background: ${color}; 
-                  width: ${isStart ? 30 : isEnd ? 22 : 16}px; 
-                  height: ${isStart ? 30 : isEnd ? 22 : 16}px; 
-                  border-radius: 50%; 
-                  border: 2px solid white;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  color: white;
-                  font-size: 12px;
-                  font-weight: bold;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-                ">${stopIdx + 1}</div>`,
-                iconSize: [isStart ? 30 : isEnd ? 22 : 16, isStart ? 30 : isEnd ? 22 : 16],
-                iconAnchor: [isStart ? 15 : isEnd ? 11 : 8, isStart ? 30 : isEnd ? 22 : 16]
-              });
+          /* look up coordinates from stopCoords first, then routeStops fallback */
+          const routeCoords = route
+            .map((loc) => {
+              if (stopCoords && stopCoords[loc])
+                return [stopCoords[loc].lat, stopCoords[loc].lon];
+              const rs = routeStops.find((s) => s.name === loc);
+              return rs ? [rs.lat, rs.lon] : null;
+            })
+            .filter(Boolean);
 
-              const marker = L.marker(coord, {icon: markerIcon}).addTo(deliveryMap);
-              
-              const popupContent = `
-                <div style="font-size: 11px; min-width: 160px;">
-                  <strong style="color: ${color}; font-size: 13px;">${truck.truck_id}</strong><br/>
-                  <strong>Location:</strong> ${route[stopIdx]}<br/>
-                  <strong>Stop:</strong> ${stopIdx + 1} of ${route.length}<br/>
-                  <strong>Type:</strong> ${isStart ? 'Start/Depot' : isEnd ? 'End/Depot' : 'Stop'}<br/>
-                  <hr style="margin: 4px 0; border: none; border-top: 1px solid #eee;">
-                  <strong>Load:</strong> ${truck.used_kg.toLocaleString()} kg<br/>
-                  <strong>Capacity:</strong> ${truck.capacity_kg.toLocaleString()} kg<br/>
-                  <strong>Utilization:</strong> ${truck.utilization_pct.toFixed(1)}%<br/>
-                  <strong>Distance:</strong> ${truck.distance_km.toFixed(1)} km<br/>
-                  <strong>CO₂:</strong> ${truck.co2_kg.toLocaleString()} kg
-                </div>
-              `;
-              
-              marker.bindPopup(popupContent);
-              mapMarkers.push(marker);
-              bounds.extend(coord);
+          if (!routeCoords.length) return;
+
+          const poly = L.polyline(routeCoords, {
+            color,
+            weight: 3.5,
+            opacity: 0.85,
+          }).addTo(deliveryMap);
+          mapPolylines.push(poly);
+
+          routeCoords.forEach((coord, si) => {
+            const isDepot = si === 0 || si === routeCoords.length - 1;
+            const sz = isDepot ? 26 : 18;
+            const icon = L.divIcon({
+              className: "",
+              html: `<div style="background:${color};width:${sz}px;height:${sz}px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;color:#fff;font-size:${isDepot ? 12 : 10}px;font-weight:700;">${isDepot ? "🏠" : si}</div>`,
+              iconSize: [sz, sz],
+              iconAnchor: [sz / 2, sz / 2],
             });
-          }
+            const m = L.marker(coord, { icon }).addTo(deliveryMap).bindPopup(`
+<div style="font-size:11px;min-width:170px;">
+  <strong style="color:${color};font-size:13px;">🚛 ${truck.truck_id}</strong><br/>
+  <b>Stop:</b> ${route[si]}<br/>
+  <b>Leg:</b> ${si + 1} / ${routeCoords.length}<br/>
+  <hr style="margin:4px 0;border:none;border-top:1px solid #eee;">
+  <b>Load:</b> ${truck.used_kg.toLocaleString()} kg<br/>
+  <b>Capacity:</b> ${truck.capacity_kg.toLocaleString()} kg<br/>
+  <b>Util.:</b> ${truck.utilization_pct.toFixed(1)}%<br/>
+  <b>Distance:</b> ${truck.distance_km.toFixed(1)} km<br/>
+  <b>CO₂:</b> ${truck.co2_kg.toLocaleString()} kg
+</div>`);
+            mapMarkers.push(m);
+            bounds.extend(coord);
+          });
         });
 
-        // Fit map to show all markers
-        if (mapMarkers.length > 0) {
-          deliveryMap.fitBounds(bounds, {padding: [50, 50]});
-        }
+        if (mapMarkers.length)
+          deliveryMap.fitBounds(bounds, { padding: [50, 50] });
       }
 
+      /* ── Plan delivery ── */
       async function planDelivery() {
+        /* validate route */
+        const src = routeStops.find((s) => s.role === "source");
+        const dest = routeStops.find((s) => s.role === "dest");
+        if (!src)
+          return toast("Set a Source (depot) on the Route Builder.", "warn");
+        if (!dest)
+          return toast("Set a Destination on the Route Builder.", "warn");
+
+        /* quantities */
         const oq = {};
         materials.forEach((m) => {
           const v =
@@ -1645,19 +2064,52 @@
         });
         if (!Object.keys(oq).length)
           return toast("Add at least one dispatch quantity.", "warn");
+
+        /* trucks */
         const truckEls = document.querySelectorAll(".truck-entry");
         if (!truckEls.length) return toast("Add at least one truck.", "warn");
         const trucks = [...truckEls].map((el) => ({
           truck_id: el.querySelector(".t-id").value.trim(),
           capacity_kg: parseInt(el.querySelector(".t-cap").value),
         }));
+
+        /* build stops array for /delivery/plan-custom */
+        const order = { source: 0, stop: 1, dest: 2 };
+        const stops = [...routeStops]
+          .sort((a, b) => order[a.role] - order[b.role])
+          .map((s) => ({
+            name: s.name,
+            lat: s.lat,
+            lon: s.lon,
+            is_depot: s.role === "source",
+          }));
+
         try {
-          const results = await api("POST", "/delivery/plan", { order_quantities:oq, trucks, rain_expected:document.getElementById("d-rain").checked });
-          document.getElementById("d-output").innerHTML = `<div class="grid">${results.map(a => {
-            const mats = Object.entries(a.materials).map(([k,v])=>`${k}\xd7${v}`).join(", ") || "Empty";
-            const u = a.utilization_pct;
-            const fc = u<40?"var(--red)":u<70?"var(--amber)":"var(--green)";
-            return `
+          toast("Planning optimised route…", "info");
+          const res = await api("POST", "/delivery/plan-custom", {
+            order_quantities: oq,
+            trucks,
+            rain_expected: document.getElementById("d-rain").checked,
+            stops,
+          });
+          const { assignments, stop_coords } = res;
+
+          /* render cards */
+          document.getElementById("d-output").innerHTML =
+            `<div class="grid">${assignments
+              .map((a) => {
+                const mats =
+                  Object.entries(a.materials)
+                    .map(([k, v]) => `${k}×${v}`)
+                    .join(", ") || "Empty";
+                const u = a.utilization_pct;
+                const fc =
+                  u < 40
+                    ? "var(--red)"
+                    : u < 70
+                      ? "var(--amber)"
+                      : "var(--green)";
+                return `
 <div class="card" style="margin:0;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem;">
     <span style="font-weight:700;">🚛 ${a.truck_id}</span>
@@ -1671,10 +2123,12 @@
     <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value ${a.co2_kg > 1000 ? "bad" : a.co2_kg > 200 ? "warn" : "good"}">${a.co2_kg.toLocaleString()} kg</div></div>
   </div>
   <div class="sub" style="font-size:.74rem;margin-bottom:.28rem;"><strong style="color:var(--sub);">Materials</strong> ${mats}</div>
-  <div class="sub" style="font-size:.74rem;"><strong style="color:var(--sub);">Route</strong> ${a.route.join(" \u2192 ")}</div>
+  <div class="sub" style="font-size:.74rem;"><strong style="color:var(--sub);">Route</strong> ${a.route.join(" → ")}</div>
 </div>`;
               })
               .join("")}</div>`;
+
+          displayTrucksOnMap(assignments, stop_coords);
         } catch (e) {
           toast(e.message, "err");
         }

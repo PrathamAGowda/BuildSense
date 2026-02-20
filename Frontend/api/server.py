@@ -45,6 +45,7 @@ from engine.rerouting_engine import (
     compare_routes,
 )
 from models.material import Material, PhaseRecord
+from models.delivery import DeliveryPoint
 
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -504,6 +505,145 @@ def compare_delivery_routes():
 def get_sites():
     sites = load_sites()
     return jsonify([s.to_dict() for s in sites])
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Geocoding — resolve a place name to lat/lon via Nominatim           #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.get("/api/geocode")
+def geocode():
+    """
+    GET /api/geocode?q=Mumbai
+    Calls Nominatim (OpenStreetMap) — no API key required.
+    Returns up to 5 candidates: [{name, lat, lon, display_name}]
+    """
+    import urllib.request
+    import urllib.parse
+    import json as _json
+    import ssl
+    import certifi
+
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify({"error": "Provide ?q=<place name>"}), 400
+
+    params = urllib.parse.urlencode({
+        "q":              query,
+        "format":         "json",
+        "limit":          5,
+        "addressdetails": 0,
+    })
+    url = f"https://nominatim.openstreetmap.org/search?{params}"
+    req = urllib.request.Request(url, headers={"User-Agent": "BuildSense/1.0"})
+    ctx = ssl.create_default_context(cafile=certifi.where())
+
+    try:
+        with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:
+            data = _json.loads(resp.read().decode())
+    except Exception as e:
+        return jsonify({"error": f"Geocoding failed: {e}"}), 502
+
+    results = [
+        {
+            "name":         item.get("name") or item.get("display_name", "").split(",")[0],
+            "display_name": item.get("display_name", ""),
+            "lat":          float(item["lat"]),
+            "lon":          float(item["lon"]),
+        }
+        for item in data
+    ]
+    return jsonify(results)
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Custom Route Delivery Plan                                          #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.post("/api/delivery/plan-custom")
+def delivery_plan_custom():
+    """
+    Delivery plan with user-defined route stops (no pre-loaded sites.json).
+
+    POST body:
+    {
+      "order_quantities": {"Cement": 500, "Steel": 200},
+      "trucks": [{"truck_id": "TRK-01", "capacity_kg": 10000}],
+      "rain_expected": false,
+      "stops": [
+        {"name": "Depot",       "lat": 12.9716, "lon": 77.5946, "is_depot": true},
+        {"name": "Site A",      "lat": 13.0827, "lon": 80.2707},
+        {"name": "Site B",      "lat": 17.3850, "lon": 78.4867},
+        {"name": "Destination", "lat": 19.0760, "lon": 72.8777}
+      ]
+    }
+
+    Stops are visited in shortest-path order (TSP/CVRP).
+    The first stop marked is_depot=true is used as the depot;
+    if none is marked, the first stop in the list is treated as depot.
+    """
+    body             = request.json
+    order_quantities = body.get("order_quantities", {})
+    trucks           = body.get("trucks", [])
+    rain_expected    = bool(body.get("rain_expected", False))
+    stops_raw        = body.get("stops", [])
+
+    if not trucks:
+        return jsonify({"error": "Provide at least one truck."}), 400
+    if not order_quantities:
+        return jsonify({"error": "Provide at least one dispatch quantity."}), 400
+    if len(stops_raw) < 2:
+        return jsonify({"error": "Provide at least a source and a destination."}), 400
+
+    mats = load_materials()
+
+    # Identify depot (first stop with is_depot=True, or first stop)
+    depot_raw  = next((s for s in stops_raw if s.get("is_depot")), stops_raw[0])
+    sites_raw  = [s for s in stops_raw if s is not depot_raw]
+
+    # Distribute total demand evenly across non-depot stops
+    demand_per_stop = max(1, int(sum(
+        mats[n].weight_per_unit * q
+        for n, q in order_quantities.items() if n in mats
+    ) / max(len(sites_raw), 1)))
+
+    depot = DeliveryPoint(
+        name=depot_raw["name"],
+        lat=float(depot_raw["lat"]),
+        lon=float(depot_raw["lon"]),
+        demand=0,
+    )
+    sites = [
+        DeliveryPoint(
+            name=s["name"],
+            lat=float(s["lat"]),
+            lon=float(s["lon"]),
+            demand=demand_per_stop,
+        )
+        for s in sites_raw
+    ]
+
+    assignments = optimize_truck_loads(mats, order_quantities, trucks, rain_expected)
+    vehicle_cap = max(t["capacity_kg"] for t in trucks)
+    assignments = solve_routes(depot, sites, assignments, vehicle_cap)
+
+    result = []
+    for a in assignments:
+        counts = Counter(a.materials_loaded)
+        result.append({
+            "truck_id":        a.truck_id,
+            "capacity_kg":     a.capacity_kg,
+            "used_kg":         a.used_capacity_kg,
+            "utilization_pct": a.utilization_pct,
+            "materials":       dict(counts),
+            "route":           a.route,
+            "distance_km":     a.distance_km,
+            "co2_kg":          a.co2_kg,
+        })
+
+    # Also return stop coordinates so the frontend can draw the map
+    stop_coords = {s["name"]: {"lat": s["lat"], "lon": s["lon"]} for s in stops_raw}
+    return jsonify({"assignments": result, "stop_coords": stop_coords})
 
 
 # ─────────────────────────────────────────────────────────────────── #
