@@ -31,6 +31,7 @@ from engine.material_engine import (
     log_daily_usage,
     get_usage_trend,
 )
+from engine.forecasting import forecast_consumption, MA_THRESHOLD, MIN_ARIMA_POINTS
 from engine.logistics_engine import (
     optimize_truck_loads,
     solve_routes,
@@ -351,6 +352,78 @@ def delivery_plan():
             "co2_kg":          a.co2_kg,
         })
     return jsonify(result)
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Forecast — adaptive MA / ARIMA consumption forecast                 #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.post("/api/phase/forecast")
+def phase_forecast():
+    """
+    POST body:
+        material    : str
+        phase_index : int
+        horizon     : int  (optional, default 14)
+
+    Returns a ForecastResult serialised as JSON, including:
+        model, horizon, forecast (list of {date, qty}),
+        total_forecast, expected_excess, backtest_mape, note, warning,
+        regime (str: "MA" or "ARIMA"), thresholds used.
+    """
+    body = request.json
+    mats = load_materials()
+    name = body.get("material", "").strip().title()
+    if name not in mats:
+        return jsonify({"error": f"Material '{name}' not found."}), 404
+    mat = mats[name]
+
+    phase_index = int(body.get("phase_index", len(mat.history) - 1))
+    if phase_index < 0 or phase_index >= len(mat.history):
+        return jsonify({"error": "Invalid phase_index."}), 400
+
+    horizon = int(body.get("horizon", 14))
+    phase   = mat.history[phase_index]
+    usage   = [{"date": e.date, "quantity": e.quantity} for e in phase.daily_usage]
+
+    result = forecast_consumption(
+        daily_usage  = usage,
+        ordered_qty  = phase.ordered_qty,
+        consumed_qty = phase.consumed_qty,
+        horizon      = horizon,
+    )
+
+    # determine which regime was used so the UI can label it correctly
+    from engine.forecasting import _calendar_days, _build_series
+    try:
+        s = _build_series(usage)
+        cal_days = _calendar_days(s)
+        n_points = len(usage)
+        regime = "MA" if (cal_days < MA_THRESHOLD or n_points < MIN_ARIMA_POINTS) else "ARIMA"
+    except Exception:
+        regime = "MA"
+
+    return jsonify({
+        "material":       name,
+        "phase_name":     phase.phase_name,
+        "model":          result.model,
+        "regime":         regime,
+        "horizon":        result.horizon,
+        "forecast":       result.forecast,
+        "total_forecast": result.total_forecast,
+        "expected_excess": result.expected_excess,
+        "backtest_mape":  result.backtest_mape,
+        "note":           result.note,
+        "warning":        result.warning,
+        "thresholds": {
+            "ma_threshold_calendar_days": MA_THRESHOLD,
+            "min_arima_points":           MIN_ARIMA_POINTS,
+        },
+        "data_available": {
+            "log_entries":    len(usage),
+            "calendar_days":  cal_days if 'cal_days' in dir() else None,
+        },
+    })
 
 
 # ─────────────────────────────────────────────────────────────────── #

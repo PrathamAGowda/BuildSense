@@ -15,6 +15,7 @@ from .logistics_engine import (
     solve_routes,
     calculate_emissions,
 )
+from .forecasting import forecast_consumption, ForecastResult, MA_THRESHOLD, MIN_ARIMA_POINTS
 
 __all__ = [
     "recommend_order_qty",
@@ -30,4 +31,8 @@ __all__ = [
     "optimize_truck_loads",
     "solve_routes",
     "calculate_emissions",
+    "forecast_consumption",
+    "ForecastResult",
+    "MA_THRESHOLD",
+    "MIN_ARIMA_POINTS",
 ]
