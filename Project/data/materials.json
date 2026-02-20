@@ -162,6 +162,52 @@
             "quantity": 32.0
           }
         ]
+      },
+      {
+        "phase_name": "F",
+        "planned_qty": 500.0,
+        "ordered_qty": 530.0,
+        "consumed_qty": 530.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 0.0,
+        "daily_usage": [
+          {
+            "date": "2026-02-20",
+            "quantity": 100.0
+          },
+          {
+            "date": "2026-02-21",
+            "quantity": 200.0
+          },
+          {
+            "date": "2026-02-22",
+            "quantity": 100.0
+          },
+          {
+            "date": "2026-02-23",
+            "quantity": 50.0
+          },
+          {
+            "date": "2026-02-24",
+            "quantity": 60.0
+          },
+          {
+            "date": "2026-02-25",
+            "quantity": 0.0
+          },
+          {
+            "date": "2026-02-25",
+            "quantity": 0.0
+          },
+          {
+            "date": "2026-02-26",
+            "quantity": 10.0
+          },
+          {
+            "date": "2026-02-26",
+            "quantity": 10.0
+          }
+        ]
       }
     ]
   },
@@ -190,6 +236,84 @@
         "waste_pct": 0.0,
         "remaining_stock": 220.0,
         "daily_usage": []
+      },
+      {
+        "phase_name": "F",
+        "planned_qty": 250.0,
+        "ordered_qty": 275.0,
+        "consumed_qty": 107.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 168.0,
+        "daily_usage": [
+          {
+            "date": "2026-02-22",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-23",
+            "quantity": 30.0
+          },
+          {
+            "date": "2026-02-24",
+            "quantity": 5.0
+          },
+          {
+            "date": "2026-02-25",
+            "quantity": 5.0
+          },
+          {
+            "date": "2026-02-25",
+            "quantity": 5.0
+          },
+          {
+            "date": "2026-02-26",
+            "quantity": 5.0
+          },
+          {
+            "date": "2026-02-27",
+            "quantity": 0.0
+          },
+          {
+            "date": "2026-02-28",
+            "quantity": 0.0
+          },
+          {
+            "date": "2026-02-20",
+            "quantity": 5.0
+          },
+          {
+            "date": "2026-03-01",
+            "quantity": 5.0
+          },
+          {
+            "date": "2026-03-02",
+            "quantity": 3.0
+          },
+          {
+            "date": "2026-03-03",
+            "quantity": 2.0
+          },
+          {
+            "date": "2026-03-04",
+            "quantity": 5.0
+          },
+          {
+            "date": "2026-03-05",
+            "quantity": 5.0
+          },
+          {
+            "date": "2026-03-06",
+            "quantity": 5.0
+          },
+          {
+            "date": "2026-03-07",
+            "quantity": 5.0
+          },
+          {
+            "date": "2026-03-08",
+            "quantity": 2.0
+          }
+        ]
       }
     ]
   },

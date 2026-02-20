@@ -31,7 +31,11 @@ from engine.material_engine import (
     log_daily_usage,
     get_usage_trend,
 )
-from engine.forecasting import forecast_consumption, MA_THRESHOLD, MIN_ARIMA_POINTS
+from engine.forecasting import (
+    forecast_consumption,
+    MA_THRESHOLD, MIN_ARIMA_POINTS,
+    _calendar_days, _build_series,
+)
 from engine.logistics_engine import (
     optimize_truck_loads,
     solve_routes,
@@ -397,15 +401,12 @@ def phase_forecast():
         horizon      = horizon,
     )
 
-    # determine which regime was used so the UI can label it correctly
-    from engine.forecasting import _calendar_days, _build_series
     try:
-        s = _build_series(usage)
+        s        = _build_series(usage)
         cal_days = _calendar_days(s)
-        n_points = len(usage)
-        regime = "MA" if (cal_days < MA_THRESHOLD or n_points < MIN_ARIMA_POINTS) else "ARIMA"
+        regime   = "MA" if (cal_days < MA_THRESHOLD or len(usage) < MIN_ARIMA_POINTS) else "ARIMA"
     except Exception:
-        regime = "MA"
+        regime   = "MA"
         cal_days = None
 
     return jsonify({
