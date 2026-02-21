@@ -1,5 +1,43 @@
 [
   {
+    "timestamp": "2026-02-21T06:46:19.733126Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 127.373,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 6
+  },
+  {
+    "timestamp": "2026-02-21T06:46:19.733126Z",
+    "source": "approved",
+    "material": "Steel",
+    "unit": "kg",
+    "reorder_qty": 306.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 5
+  },
+  {
     "timestamp": "2026-02-21T05:28:53.122314Z",
     "source": "approved",
     "material": "Cement",

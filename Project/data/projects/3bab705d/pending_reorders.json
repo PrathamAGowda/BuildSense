@@ -1,461 +1,33 @@
 [
   {
-    "timestamp": "2026-02-21T06:45:45.429792Z",
-    "source": "manual-order",
-    "batch_id": "9a220660",
-    "material": "Steel",
-    "unit": "kg",
-    "planned_qty": 300.0,
-    "reorder_qty": 306.0,
-    "buffer_pct": 2.0,
-    "days_remaining": null,
-    "stockout_date": null,
-    "ema_rate": null,
-    "critical": false,
-    "id": 6,
-    "status": "arrived",
-    "approved_at": "2026-02-21T06:46:19.733126Z",
-    "supply_plan": {
-      "destination": {
-        "name": "Bengaluru",
-        "lat": 12.9767936,
-        "lon": 77.590082
-      },
-      "requirements": [
-        {
-          "material": "Steel",
-          "qty": 306.0,
-          "unit_weight": 1.0
-        },
-        {
-          "material": "Cement",
-          "qty": 127.373,
-          "unit_weight": 50.0
-        }
-      ],
-      "shortfalls": [],
-      "picks": [
-        {
-          "store_id": "S03",
-          "store_name": "Mysore Road Steel & Cement",
-          "lat": 12.934,
-          "lon": 77.49,
-          "material": "Steel",
-          "qty_units": 306.0,
-          "weight_kg": 306.0,
-          "dist_to_dest_km": 11.8
-        },
-        {
-          "store_id": "S01",
-          "store_name": "Bangalore East Cement Works",
-          "lat": 12.99,
-          "lon": 77.68,
-          "material": "Cement",
-          "qty_units": 127.37,
-          "weight_kg": 6368.65,
-          "dist_to_dest_km": 9.9
-        }
-      ],
-      "depot_plans": [
-        {
-          "depot": {
-            "id": "DEP-BLR",
-            "name": "Bangalore Central Depot",
-            "lat": 12.9716,
-            "lon": 77.5946
-          },
-          "assignments": [
-            {
-              "truck_id": "BLR-T1",
-              "capacity_kg": 16000,
-              "load_kg": 6674.65,
-              "util_pct": 41.7,
-              "route": [
-                {
-                  "name": "Bangalore Central Depot",
-                  "lat": 12.9716,
-                  "lon": 77.5946
-                },
-                {
-                  "name": "Mysore Road Steel & Cement",
-                  "lat": 12.934,
-                  "lon": 77.49
-                },
-                {
-                  "name": "Bangalore East Cement Works",
-                  "lat": 12.99,
-                  "lon": 77.68
-                },
-                {
-                  "name": "Bengaluru",
-                  "lat": 12.9767936,
-                  "lon": 77.590082
-                }
-              ],
-              "stops": [
-                {
-                  "store_id": "S03",
-                  "store_name": "Mysore Road Steel & Cement",
-                  "lat": 12.934,
-                  "lon": 77.49,
-                  "materials": [
-                    {
-                      "material": "Steel",
-                      "qty": 306.0,
-                      "weight_kg": 306.0
-                    }
-                  ],
-                  "weight_kg": 306.0
-                },
-                {
-                  "store_id": "S01",
-                  "store_name": "Bangalore East Cement Works",
-                  "lat": 12.99,
-                  "lon": 77.68,
-                  "materials": [
-                    {
-                      "material": "Cement",
-                      "qty": 127.37,
-                      "weight_kg": 6368.65
-                    }
-                  ],
-                  "weight_kg": 6368.65
-                }
-              ],
-              "distance_km": 52.92,
-              "co2_kg": 15.22
-            }
-          ]
-        }
-      ],
-      "summary": {
-        "total_trucks": 1,
-        "total_kg": 6674.65,
-        "total_km": 52.92,
-        "total_co2_kg": 15.22,
-        "depots_used": 1,
-        "stores_sourced": 2,
-        "shortfalls": 0
-      }
-    },
-    "dest_name": "Bengaluru",
-    "depots_used": [
-      "Bangalore Central Depot"
-    ],
-    "total_distance_km": null,
-    "total_co2_kg": null,
-    "arrived_at": "2026-02-21T06:46:22.923375Z",
-    "added_to_phase": "F3",
-    "qty_added": 306.0
-  },
-  {
-    "timestamp": "2026-02-21T06:45:45.429792Z",
-    "source": "manual-order",
-    "batch_id": "9a220660",
-    "material": "Cement",
-    "unit": "bags",
-    "planned_qty": 100.0,
-    "reorder_qty": 127.373,
-    "buffer_pct": 27.373,
-    "days_remaining": null,
-    "stockout_date": null,
-    "ema_rate": null,
-    "critical": false,
-    "id": 5,
-    "status": "arrived",
-    "approved_at": "2026-02-21T06:46:19.733126Z",
-    "supply_plan": {
-      "destination": {
-        "name": "Bengaluru",
-        "lat": 12.9767936,
-        "lon": 77.590082
-      },
-      "requirements": [
-        {
-          "material": "Steel",
-          "qty": 306.0,
-          "unit_weight": 1.0
-        },
-        {
-          "material": "Cement",
-          "qty": 127.373,
-          "unit_weight": 50.0
-        }
-      ],
-      "shortfalls": [],
-      "picks": [
-        {
-          "store_id": "S03",
-          "store_name": "Mysore Road Steel & Cement",
-          "lat": 12.934,
-          "lon": 77.49,
-          "material": "Steel",
-          "qty_units": 306.0,
-          "weight_kg": 306.0,
-          "dist_to_dest_km": 11.8
-        },
-        {
-          "store_id": "S01",
-          "store_name": "Bangalore East Cement Works",
-          "lat": 12.99,
-          "lon": 77.68,
-          "material": "Cement",
-          "qty_units": 127.37,
-          "weight_kg": 6368.65,
-          "dist_to_dest_km": 9.9
-        }
-      ],
-      "depot_plans": [
-        {
-          "depot": {
-            "id": "DEP-BLR",
-            "name": "Bangalore Central Depot",
-            "lat": 12.9716,
-            "lon": 77.5946
-          },
-          "assignments": [
-            {
-              "truck_id": "BLR-T1",
-              "capacity_kg": 16000,
-              "load_kg": 6674.65,
-              "util_pct": 41.7,
-              "route": [
-                {
-                  "name": "Bangalore Central Depot",
-                  "lat": 12.9716,
-                  "lon": 77.5946
-                },
-                {
-                  "name": "Mysore Road Steel & Cement",
-                  "lat": 12.934,
-                  "lon": 77.49
-                },
-                {
-                  "name": "Bangalore East Cement Works",
-                  "lat": 12.99,
-                  "lon": 77.68
-                },
-                {
-                  "name": "Bengaluru",
-                  "lat": 12.9767936,
-                  "lon": 77.590082
-                }
-              ],
-              "stops": [
-                {
-                  "store_id": "S03",
-                  "store_name": "Mysore Road Steel & Cement",
-                  "lat": 12.934,
-                  "lon": 77.49,
-                  "materials": [
-                    {
-                      "material": "Steel",
-                      "qty": 306.0,
-                      "weight_kg": 306.0
-                    }
-                  ],
-                  "weight_kg": 306.0
-                },
-                {
-                  "store_id": "S01",
-                  "store_name": "Bangalore East Cement Works",
-                  "lat": 12.99,
-                  "lon": 77.68,
-                  "materials": [
-                    {
-                      "material": "Cement",
-                      "qty": 127.37,
-                      "weight_kg": 6368.65
-                    }
-                  ],
-                  "weight_kg": 6368.65
-                }
-              ],
-              "distance_km": 52.92,
-              "co2_kg": 15.22
-            }
-          ]
-        }
-      ],
-      "summary": {
-        "total_trucks": 1,
-        "total_kg": 6674.65,
-        "total_km": 52.92,
-        "total_co2_kg": 15.22,
-        "depots_used": 1,
-        "stores_sourced": 2,
-        "shortfalls": 0
-      }
-    },
-    "dest_name": "Bengaluru",
-    "depots_used": [
-      "Bangalore Central Depot"
-    ],
-    "total_distance_km": null,
-    "total_co2_kg": null,
-    "arrived_at": "2026-02-21T06:46:23.654765Z",
-    "added_to_phase": "F1",
-    "qty_added": 127.373
-  },
-  {
-    "timestamp": "2026-02-21T05:28:48.384353Z",
-    "source": "manual-order",
-    "batch_id": "d812d520",
-    "material": "Cement",
-    "unit": "bags",
-    "planned_qty": 300.0,
-    "reorder_qty": 318.0,
-    "buffer_pct": 6.0,
-    "days_remaining": null,
-    "stockout_date": null,
-    "ema_rate": null,
-    "critical": false,
-    "id": 4,
-    "status": "arrived",
-    "approved_at": "2026-02-21T05:28:53.122314Z",
-    "supply_plan": {
-      "destination": {
-        "name": "Bengaluru",
-        "lat": 12.9767936,
-        "lon": 77.590082
-      },
-      "requirements": [
-        {
-          "material": "Cement",
-          "qty": 318.0,
-          "unit_weight": 50.0
-        }
-      ],
-      "shortfalls": [],
-      "picks": [
-        {
-          "store_id": "S01",
-          "store_name": "Bangalore East Cement Works",
-          "lat": 12.99,
-          "lon": 77.68,
-          "material": "Cement",
-          "qty_units": 318.0,
-          "weight_kg": 15900.0,
-          "dist_to_dest_km": 9.9
-        }
-      ],
-      "depot_plans": [
-        {
-          "depot": {
-            "id": "DEP-BLR",
-            "name": "Bangalore Central Depot",
-            "lat": 12.9716,
-            "lon": 77.5946
-          },
-          "assignments": [
-            {
-              "truck_id": "BLR-T1",
-              "capacity_kg": 16000,
-              "load_kg": 15900.0,
-              "util_pct": 99.4,
-              "route": [
-                {
-                  "name": "Bangalore Central Depot",
-                  "lat": 12.9716,
-                  "lon": 77.5946
-                },
-                {
-                  "name": "Bangalore East Cement Works",
-                  "lat": 12.99,
-                  "lon": 77.68
-                },
-                {
-                  "name": "Bengaluru",
-                  "lat": 12.9767936,
-                  "lon": 77.590082
-                }
-              ],
-              "stops": [
-                {
-                  "store_id": "S01",
-                  "store_name": "Bangalore East Cement Works",
-                  "lat": 12.99,
-                  "lon": 77.68,
-                  "materials": [
-                    {
-                      "material": "Cement",
-                      "qty": 318.0,
-                      "weight_kg": 15900.0
-                    }
-                  ],
-                  "weight_kg": 15900.0
-                }
-              ],
-              "distance_km": 28.81,
-              "co2_kg": 3.48
-            }
-          ]
-        }
-      ],
-      "summary": {
-        "total_trucks": 1,
-        "total_kg": 15900.0,
-        "total_km": 28.81,
-        "total_co2_kg": 3.48,
-        "depots_used": 1,
-        "stores_sourced": 1,
-        "shortfalls": 0
-      }
-    },
-    "dest_name": "Bengaluru",
-    "depots_used": [
-      "Bangalore Central Depot"
-    ],
-    "total_distance_km": null,
-    "total_co2_kg": null,
-    "arrived_at": "2026-02-21T05:29:01.980921Z",
-    "added_to_phase": "F1",
-    "qty_added": 318.0
-  },
-  {
-    "timestamp": "2026-02-21T05:28:03.434931Z",
+    "timestamp": "2026-02-21T07:05:03.401420Z",
     "source": "daily-log",
     "material": "Cement",
     "unit": "bags",
-    "reorder_qty": 590.08,
-    "days_remaining": 0.0,
-    "stockout_date": "2026-02-21",
-    "ema_rate": 39.7625,
-    "critical": true,
-    "id": 3,
-    "status": "rejected",
-    "rejected_at": "2026-02-21T05:28:37.211061Z"
-  },
-  {
-    "timestamp": "2026-02-21T05:18:42.032144Z",
-    "source": "daily-log",
-    "material": "Cement",
-    "unit": "bags",
-    "reorder_qty": 742.0,
+    "reorder_qty": 786.52,
     "days_remaining": 0.1,
     "stockout_date": "2026-02-21",
-    "ema_rate": 50.0,
+    "ema_rate": 53.0,
     "critical": true,
-    "id": 2,
-    "status": "rejected",
-    "rejected_at": "2026-02-21T05:27:50.859826Z"
+    "id": 4,
+    "status": "pending"
   },
   {
-    "timestamp": "2026-02-21T05:17:48.104188Z",
+    "timestamp": "2026-02-21T07:03:40.823646Z",
     "source": "manual-order",
-    "batch_id": "ec10478e",
-    "material": "Cement",
-    "unit": "bags",
-    "planned_qty": 100.0,
-    "reorder_qty": 106.0,
-    "buffer_pct": 6.0,
+    "batch_id": "54c2e540",
+    "material": "Aggregate",
+    "unit": "tons",
+    "planned_qty": 250.0,
+    "reorder_qty": 262.5,
+    "buffer_pct": 5.0,
     "days_remaining": null,
     "stockout_date": null,
     "ema_rate": null,
     "critical": false,
-    "id": 1,
+    "id": 3,
     "status": "arrived",
-    "approved_at": "2026-02-21T05:17:58.119752Z",
+    "approved_at": "2026-02-21T07:04:18.315054Z",
     "supply_plan": {
       "destination": {
         "name": "Bengaluru",
@@ -463,6 +35,16 @@
         "lon": 77.590082
       },
       "requirements": [
+        {
+          "material": "Aggregate",
+          "qty": 262.5,
+          "unit_weight": 1000.0
+        },
+        {
+          "material": "Steel",
+          "qty": 40.8,
+          "unit_weight": 1.0
+        },
         {
           "material": "Cement",
           "qty": 106.0,
@@ -471,6 +53,26 @@
       ],
       "shortfalls": [],
       "picks": [
+        {
+          "store_id": "S01",
+          "store_name": "Bangalore East Cement Works",
+          "lat": 12.99,
+          "lon": 77.68,
+          "material": "Aggregate",
+          "qty_units": 262.5,
+          "weight_kg": 262500.0,
+          "dist_to_dest_km": 9.9
+        },
+        {
+          "store_id": "S03",
+          "store_name": "Mysore Road Steel & Cement",
+          "lat": 12.934,
+          "lon": 77.49,
+          "material": "Steel",
+          "qty_units": 40.8,
+          "weight_kg": 40.8,
+          "dist_to_dest_km": 11.8
+        },
         {
           "store_id": "S01",
           "store_name": "Bangalore East Cement Works",
@@ -494,8 +96,8 @@
             {
               "truck_id": "BLR-T1",
               "capacity_kg": 16000,
-              "load_kg": 5300.0,
-              "util_pct": 33.1,
+              "load_kg": 267800.0,
+              "util_pct": 1673.8,
               "route": [
                 {
                   "name": "Bangalore Central Depot",
@@ -521,27 +123,73 @@
                   "lon": 77.68,
                   "materials": [
                     {
+                      "material": "Aggregate",
+                      "qty": 262.5,
+                      "weight_kg": 262500.0
+                    },
+                    {
                       "material": "Cement",
                       "qty": 106.0,
                       "weight_kg": 5300.0
                     }
                   ],
-                  "weight_kg": 5300.0
+                  "weight_kg": 267800.0
                 }
               ],
               "distance_km": 28.81,
-              "co2_kg": 10.44
+              "co2_kg": 0.21
+            },
+            {
+              "truck_id": "BLR-T2",
+              "capacity_kg": 12000,
+              "load_kg": 40.8,
+              "util_pct": 0.3,
+              "route": [
+                {
+                  "name": "Bangalore Central Depot",
+                  "lat": 12.9716,
+                  "lon": 77.5946
+                },
+                {
+                  "name": "Mysore Road Steel & Cement",
+                  "lat": 12.934,
+                  "lon": 77.49
+                },
+                {
+                  "name": "Bengaluru",
+                  "lat": 12.9767936,
+                  "lon": 77.590082
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S03",
+                  "store_name": "Mysore Road Steel & Cement",
+                  "lat": 12.934,
+                  "lon": 77.49,
+                  "materials": [
+                    {
+                      "material": "Steel",
+                      "qty": 40.8,
+                      "weight_kg": 40.8
+                    }
+                  ],
+                  "weight_kg": 40.8
+                }
+              ],
+              "distance_km": 36.01,
+              "co2_kg": 432.12
             }
           ]
         }
       ],
       "summary": {
-        "total_trucks": 1,
-        "total_kg": 5300.0,
-        "total_km": 28.81,
-        "total_co2_kg": 10.44,
+        "total_trucks": 2,
+        "total_kg": 267840.8,
+        "total_km": 64.82,
+        "total_co2_kg": 432.33,
         "depots_used": 1,
-        "stores_sourced": 1,
+        "stores_sourced": 2,
         "shortfalls": 0
       }
     },
@@ -551,8 +199,390 @@
     ],
     "total_distance_km": null,
     "total_co2_kg": null,
-    "arrived_at": "2026-02-21T05:18:19.110757Z",
-    "added_to_phase": "F1",
+    "arrived_at": "2026-02-21T07:04:25.855913Z",
+    "added_to_phase": "Pillar 1",
+    "qty_added": 262.5
+  },
+  {
+    "timestamp": "2026-02-21T07:03:40.823646Z",
+    "source": "manual-order",
+    "batch_id": "54c2e540",
+    "material": "Steel",
+    "unit": "kg",
+    "planned_qty": 40.0,
+    "reorder_qty": 40.8,
+    "buffer_pct": 2.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "id": 2,
+    "status": "arrived",
+    "approved_at": "2026-02-21T07:04:18.315054Z",
+    "supply_plan": {
+      "destination": {
+        "name": "Bengaluru",
+        "lat": 12.9767936,
+        "lon": 77.590082
+      },
+      "requirements": [
+        {
+          "material": "Aggregate",
+          "qty": 262.5,
+          "unit_weight": 1000.0
+        },
+        {
+          "material": "Steel",
+          "qty": 40.8,
+          "unit_weight": 1.0
+        },
+        {
+          "material": "Cement",
+          "qty": 106.0,
+          "unit_weight": 50.0
+        }
+      ],
+      "shortfalls": [],
+      "picks": [
+        {
+          "store_id": "S01",
+          "store_name": "Bangalore East Cement Works",
+          "lat": 12.99,
+          "lon": 77.68,
+          "material": "Aggregate",
+          "qty_units": 262.5,
+          "weight_kg": 262500.0,
+          "dist_to_dest_km": 9.9
+        },
+        {
+          "store_id": "S03",
+          "store_name": "Mysore Road Steel & Cement",
+          "lat": 12.934,
+          "lon": 77.49,
+          "material": "Steel",
+          "qty_units": 40.8,
+          "weight_kg": 40.8,
+          "dist_to_dest_km": 11.8
+        },
+        {
+          "store_id": "S01",
+          "store_name": "Bangalore East Cement Works",
+          "lat": 12.99,
+          "lon": 77.68,
+          "material": "Cement",
+          "qty_units": 106.0,
+          "weight_kg": 5300.0,
+          "dist_to_dest_km": 9.9
+        }
+      ],
+      "depot_plans": [
+        {
+          "depot": {
+            "id": "DEP-BLR",
+            "name": "Bangalore Central Depot",
+            "lat": 12.9716,
+            "lon": 77.5946
+          },
+          "assignments": [
+            {
+              "truck_id": "BLR-T1",
+              "capacity_kg": 16000,
+              "load_kg": 267800.0,
+              "util_pct": 1673.8,
+              "route": [
+                {
+                  "name": "Bangalore Central Depot",
+                  "lat": 12.9716,
+                  "lon": 77.5946
+                },
+                {
+                  "name": "Bangalore East Cement Works",
+                  "lat": 12.99,
+                  "lon": 77.68
+                },
+                {
+                  "name": "Bengaluru",
+                  "lat": 12.9767936,
+                  "lon": 77.590082
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S01",
+                  "store_name": "Bangalore East Cement Works",
+                  "lat": 12.99,
+                  "lon": 77.68,
+                  "materials": [
+                    {
+                      "material": "Aggregate",
+                      "qty": 262.5,
+                      "weight_kg": 262500.0
+                    },
+                    {
+                      "material": "Cement",
+                      "qty": 106.0,
+                      "weight_kg": 5300.0
+                    }
+                  ],
+                  "weight_kg": 267800.0
+                }
+              ],
+              "distance_km": 28.81,
+              "co2_kg": 0.21
+            },
+            {
+              "truck_id": "BLR-T2",
+              "capacity_kg": 12000,
+              "load_kg": 40.8,
+              "util_pct": 0.3,
+              "route": [
+                {
+                  "name": "Bangalore Central Depot",
+                  "lat": 12.9716,
+                  "lon": 77.5946
+                },
+                {
+                  "name": "Mysore Road Steel & Cement",
+                  "lat": 12.934,
+                  "lon": 77.49
+                },
+                {
+                  "name": "Bengaluru",
+                  "lat": 12.9767936,
+                  "lon": 77.590082
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S03",
+                  "store_name": "Mysore Road Steel & Cement",
+                  "lat": 12.934,
+                  "lon": 77.49,
+                  "materials": [
+                    {
+                      "material": "Steel",
+                      "qty": 40.8,
+                      "weight_kg": 40.8
+                    }
+                  ],
+                  "weight_kg": 40.8
+                }
+              ],
+              "distance_km": 36.01,
+              "co2_kg": 432.12
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_trucks": 2,
+        "total_kg": 267840.8,
+        "total_km": 64.82,
+        "total_co2_kg": 432.33,
+        "depots_used": 1,
+        "stores_sourced": 2,
+        "shortfalls": 0
+      }
+    },
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "arrived_at": "2026-02-21T07:04:26.554300Z",
+    "added_to_phase": "Pillar 1",
+    "qty_added": 40.8
+  },
+  {
+    "timestamp": "2026-02-21T07:03:40.823646Z",
+    "source": "manual-order",
+    "batch_id": "54c2e540",
+    "material": "Cement",
+    "unit": "bags",
+    "planned_qty": 100.0,
+    "reorder_qty": 106.0,
+    "buffer_pct": 6.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "id": 1,
+    "status": "arrived",
+    "approved_at": "2026-02-21T07:04:18.315054Z",
+    "supply_plan": {
+      "destination": {
+        "name": "Bengaluru",
+        "lat": 12.9767936,
+        "lon": 77.590082
+      },
+      "requirements": [
+        {
+          "material": "Aggregate",
+          "qty": 262.5,
+          "unit_weight": 1000.0
+        },
+        {
+          "material": "Steel",
+          "qty": 40.8,
+          "unit_weight": 1.0
+        },
+        {
+          "material": "Cement",
+          "qty": 106.0,
+          "unit_weight": 50.0
+        }
+      ],
+      "shortfalls": [],
+      "picks": [
+        {
+          "store_id": "S01",
+          "store_name": "Bangalore East Cement Works",
+          "lat": 12.99,
+          "lon": 77.68,
+          "material": "Aggregate",
+          "qty_units": 262.5,
+          "weight_kg": 262500.0,
+          "dist_to_dest_km": 9.9
+        },
+        {
+          "store_id": "S03",
+          "store_name": "Mysore Road Steel & Cement",
+          "lat": 12.934,
+          "lon": 77.49,
+          "material": "Steel",
+          "qty_units": 40.8,
+          "weight_kg": 40.8,
+          "dist_to_dest_km": 11.8
+        },
+        {
+          "store_id": "S01",
+          "store_name": "Bangalore East Cement Works",
+          "lat": 12.99,
+          "lon": 77.68,
+          "material": "Cement",
+          "qty_units": 106.0,
+          "weight_kg": 5300.0,
+          "dist_to_dest_km": 9.9
+        }
+      ],
+      "depot_plans": [
+        {
+          "depot": {
+            "id": "DEP-BLR",
+            "name": "Bangalore Central Depot",
+            "lat": 12.9716,
+            "lon": 77.5946
+          },
+          "assignments": [
+            {
+              "truck_id": "BLR-T1",
+              "capacity_kg": 16000,
+              "load_kg": 267800.0,
+              "util_pct": 1673.8,
+              "route": [
+                {
+                  "name": "Bangalore Central Depot",
+                  "lat": 12.9716,
+                  "lon": 77.5946
+                },
+                {
+                  "name": "Bangalore East Cement Works",
+                  "lat": 12.99,
+                  "lon": 77.68
+                },
+                {
+                  "name": "Bengaluru",
+                  "lat": 12.9767936,
+                  "lon": 77.590082
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S01",
+                  "store_name": "Bangalore East Cement Works",
+                  "lat": 12.99,
+                  "lon": 77.68,
+                  "materials": [
+                    {
+                      "material": "Aggregate",
+                      "qty": 262.5,
+                      "weight_kg": 262500.0
+                    },
+                    {
+                      "material": "Cement",
+                      "qty": 106.0,
+                      "weight_kg": 5300.0
+                    }
+                  ],
+                  "weight_kg": 267800.0
+                }
+              ],
+              "distance_km": 28.81,
+              "co2_kg": 0.21
+            },
+            {
+              "truck_id": "BLR-T2",
+              "capacity_kg": 12000,
+              "load_kg": 40.8,
+              "util_pct": 0.3,
+              "route": [
+                {
+                  "name": "Bangalore Central Depot",
+                  "lat": 12.9716,
+                  "lon": 77.5946
+                },
+                {
+                  "name": "Mysore Road Steel & Cement",
+                  "lat": 12.934,
+                  "lon": 77.49
+                },
+                {
+                  "name": "Bengaluru",
+                  "lat": 12.9767936,
+                  "lon": 77.590082
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S03",
+                  "store_name": "Mysore Road Steel & Cement",
+                  "lat": 12.934,
+                  "lon": 77.49,
+                  "materials": [
+                    {
+                      "material": "Steel",
+                      "qty": 40.8,
+                      "weight_kg": 40.8
+                    }
+                  ],
+                  "weight_kg": 40.8
+                }
+              ],
+              "distance_km": 36.01,
+              "co2_kg": 432.12
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_trucks": 2,
+        "total_kg": 267840.8,
+        "total_km": 64.82,
+        "total_co2_kg": 432.33,
+        "depots_used": 1,
+        "stores_sourced": 2,
+        "shortfalls": 0
+      }
+    },
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "arrived_at": "2026-02-21T07:04:27.737830Z",
+    "added_to_phase": "Pillar 1",
     "qty_added": 106.0
   }
 ]

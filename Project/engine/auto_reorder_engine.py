@@ -195,12 +195,30 @@ def check_auto_reorder(
     triggered = days_left is not None and days_left <= horizon_days
     critical  = days_left is not None and days_left <= CRITICAL_HORIZON
 
+    # If everything still needed is already on order, don't trigger again
+    phase_fully_covered = (
+        max(0.0, phase.planned_qty - phase.consumed_qty - on_order_qty) <= 0.0
+    )
+    if phase_fully_covered:
+        triggered = False
+        critical  = False
+
     if not triggered:
-        suffix = f" (includes {on_order_qty:.2f} {material.unit} on order)" if on_order_qty > 0 else ""
+        if phase_fully_covered:
+            suffix = f" — {on_order_qty:.2f} {material.unit} already on order covers remaining need."
+        elif on_order_qty > 0:
+            suffix = f" (includes {on_order_qty:.2f} {material.unit} on order)"
+        else:
+            suffix = ""
+        reason_msg = (
+            f"Phase fully covered by existing orders — no reorder needed.{suffix}"
+            if phase_fully_covered
+            else f"Stock sufficient — {days_left:.1f} days remaining (threshold: {horizon_days} days){suffix}."
+        )
         return {
             "triggered":   False,
             "critical":    False,
-            "reason":      f"Stock sufficient — {days_left:.1f} days remaining (threshold: {horizon_days} days){suffix}.",
+            "reason":      reason_msg,
             "prediction":  prediction,
             "reorder_qty": 0.0,
             "supply_plan": None,
@@ -209,17 +227,30 @@ def check_auto_reorder(
         }
 
     # ── Compute reorder quantity ─────────────────────────────────── #
-    # Cap at what the phase actually still needs: planned - already ordered/consumed.
+    # The goal: order only what is still *actually needed* given:
+    #   • planned_qty  — the total the phase requires
+    #   • consumed_qty — already used from site stock
+    #   • on_order_qty — already ordered (pending/approved, in-flight)
+    #
+    # Anything already on order is real stock that will arrive; we must
+    # not suggest ordering it again.
     ema_rate      = prediction["ema_rate"]
     days_to_cover = max(horizon_days * 2, 14)   # order enough for 2× horizon
-    raw_reorder   = ema_rate * days_to_cover     # units needed to cover window
+    raw_reorder   = ema_rate * days_to_cover     # EMA-based window estimate
 
-    # Phase-aware cap: don't order more than what the phase plan requires
-    phase_still_needs = max(0.0, phase.planned_qty - phase.ordered_qty - phase.consumed_qty)
-    if phase_still_needs > 0:
-        raw_reorder = min(raw_reorder, phase_still_needs)
+    # True remaining need = planned − consumed − already_on_order
+    # (clamp to 0 so we never go negative)
+    phase_still_needs = max(
+        0.0,
+        phase.planned_qty - phase.consumed_qty - on_order_qty
+    )
 
-    buffered_qty  = round(raw_reorder * (1 + material.buffer_pct / 100), 2)
+    # Cap the suggestion at what's still genuinely needed
+    raw_reorder = min(raw_reorder, phase_still_needs)
+
+    buffered_qty = round(raw_reorder * (1 + material.buffer_pct / 100), 2)
+    # Absolute ceiling: never exceed phase_still_needs (pre-buffer) or planned_qty
+    buffered_qty = min(buffered_qty, phase.planned_qty)
 
     reason_parts = [
         f"Stock will run out in ≈{days_left:.1f} days (EMA rate: {ema_rate:.2f} {material.unit}/day).",

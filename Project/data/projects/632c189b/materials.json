@@ -3,7 +3,7 @@
     "name": "Cement",
     "unit": "bags",
     "baseline_buffer_pct": 6.0,
-    "buffer_pct": 41.3102,
+    "buffer_pct": 22.9456,
     "weight_per_unit": 50.0,
     "priority": 9,
     "history": [
@@ -51,6 +51,276 @@
             "quantity": 100.0
           }
         ]
+      },
+      {
+        "phase_name": "F3",
+        "planned_qty": 100.0,
+        "ordered_qty": 0.0,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 0.0,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 565.2408,
+        "consumed_qty": 400.0,
+        "waste_pct": 29.2337,
+        "remaining_stock": 165.2408,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 150.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 155.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 155.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 155.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 155.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 155.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 155.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 155.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 155.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 550.7488,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 155.7488,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 678.1218,
+        "consumed_qty": 400.0,
+        "waste_pct": 27.3716,
+        "remaining_stock": 283.1218,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 509.492,
+        "consumed_qty": 400.0,
+        "waste_pct": 21.4904,
+        "remaining_stock": 109.492,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 502.4328,
+        "consumed_qty": 400.0,
+        "waste_pct": 20.3874,
+        "remaining_stock": 102.4328,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F3",
+        "planned_qty": 100.0,
+        "ordered_qty": 125.6082,
+        "consumed_qty": 100.0,
+        "waste_pct": 20.3874,
+        "remaining_stock": 25.6082,
+        "daily_usage": []
       }
     ]
   },
@@ -58,7 +328,7 @@
     "name": "Brick",
     "unit": "pcs",
     "baseline_buffer_pct": 10.0,
-    "buffer_pct": 10.0,
+    "buffer_pct": 8.442,
     "weight_per_unit": 3.0,
     "priority": 7,
     "history": [
@@ -79,6 +349,258 @@
         "waste_pct": 0.0,
         "remaining_stock": 0.0,
         "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 330.0,
+        "consumed_qty": 300.0,
+        "waste_pct": 9.0909,
+        "remaining_stock": 30.0,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 29.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 39.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 39.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 39.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 39.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 39.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 39.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 39.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 39.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 39.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 329.1819,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.865,
+        "remaining_stock": 39.1819,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 326.5953,
+        "consumed_qty": 300.0,
+        "waste_pct": 8.1432,
+        "remaining_stock": 26.5953,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 325.9455,
+        "consumed_qty": 300.0,
+        "waste_pct": 7.9601,
+        "remaining_stock": 25.9455,
+        "daily_usage": []
       }
     ]
   },
@@ -86,10 +608,29 @@
     "name": "Steel",
     "unit": "kg",
     "baseline_buffer_pct": 2.0,
-    "buffer_pct": 2.0,
+    "buffer_pct": 1.9882,
     "weight_per_unit": 1.0,
     "priority": 10,
-    "history": []
+    "history": [
+      {
+        "phase_name": "F3",
+        "planned_qty": 50.0,
+        "ordered_qty": 306.0,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 306.0,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F3",
+        "planned_qty": 50.0,
+        "ordered_qty": 51.0,
+        "consumed_qty": 50.0,
+        "waste_pct": 1.9608,
+        "remaining_stock": 1.0,
+        "daily_usage": []
+      }
+    ]
   },
   "Sand": {
     "name": "Sand",

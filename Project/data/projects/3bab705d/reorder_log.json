@@ -1,0 +1,78 @@
+[
+  {
+    "timestamp": "2026-02-21T07:05:03.401420Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 786.52,
+    "days_remaining": 0.1,
+    "stockout_date": "2026-02-21",
+    "ema_rate": 53.0,
+    "critical": true,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "triggered",
+    "id": 4
+  },
+  {
+    "timestamp": "2026-02-21T07:04:18.315054Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 106.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 3
+  },
+  {
+    "timestamp": "2026-02-21T07:04:18.315054Z",
+    "source": "approved",
+    "material": "Steel",
+    "unit": "kg",
+    "reorder_qty": 40.8,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 2
+  },
+  {
+    "timestamp": "2026-02-21T07:04:18.315054Z",
+    "source": "approved",
+    "material": "Aggregate",
+    "unit": "tons",
+    "reorder_qty": 262.5,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 1
+  }
+]

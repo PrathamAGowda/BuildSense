@@ -1,0 +1,80 @@
+[
+  {
+    "timestamp": "2026-02-21T07:24:28.834676Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 1326.9,
+    "days_remaining": 0.5,
+    "stockout_date": "2026-02-21",
+    "ema_rate": 89.5,
+    "critical": true,
+    "dest_name": "Hubballi",
+    "depots_used": [
+      "Pune Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "triggered",
+    "id": 4
+  },
+  {
+    "timestamp": "2026-02-21T07:23:58.566922Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 211.7962,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Hubballi",
+    "depots_used": [
+      "Pune Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 3
+  },
+  {
+    "timestamp": "2026-02-21T07:19:51.318045Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 212.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Hubballi",
+    "depots_used": [
+      "Bangalore Central Depot",
+      "Pune Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 2
+  },
+  {
+    "timestamp": "2026-02-21T07:19:51.318045Z",
+    "source": "approved",
+    "material": "Aggregate",
+    "unit": "tons",
+    "reorder_qty": 525.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Hubballi",
+    "depots_used": [
+      "Bangalore Central Depot",
+      "Pune Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 1
+  }
+]

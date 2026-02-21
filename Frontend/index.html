@@ -967,10 +967,6 @@
                 <label>Name</label
                 ><input id="new-name" placeholder="e.g. Gravel" />
               </div>
-              <div class="field">
-                <label>Unit</label
-                ><input id="new-unit" placeholder="e.g. tons" />
-              </div>
               <div class="field" style="max-width: 95px">
                 <label>Buffer %</label
                 ><input
@@ -980,10 +976,6 @@
                   min="0"
                   max="100"
                 />
-              </div>
-              <div class="field" style="max-width: 115px">
-                <label>Weight/unit (kg)</label
-                ><input id="new-wt" type="number" value="1.0" step="0.1" />
               </div>
               <button class="btn btn-primary" onclick="addMaterial()">
                 Add
@@ -1371,6 +1363,10 @@
             with their planned quantities. Enter actual consumed amounts for
             each material, then close the entire phase at once.
           </div>
+
+          <!-- Closed phase cards appear here -->
+          <div id="p5-closed-cards"></div>
+
           <div class="card">
             <div
               class="row"
@@ -1411,6 +1407,64 @@
           </div>
           <div id="p5-output"></div>
           <div id="p5-history"></div>
+        </div>
+
+        <!-- Confirm Dialog (shared) -->
+        <div
+          id="confirm-overlay"
+          style="
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(3px);
+            align-items: center;
+            justify-content: center;
+          "
+        >
+          <div
+            style="
+              background: var(--card);
+              border: 1px solid var(--border);
+              border-radius: 14px;
+              width: min(400px, 92vw);
+              padding: 1.8rem 2rem;
+              animation: modal-in 0.18s ease;
+            "
+          >
+            <div
+              id="confirm-title"
+              style="font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem"
+            ></div>
+            <div
+              id="confirm-body"
+              style="
+                font-size: 0.83rem;
+                color: var(--sub);
+                line-height: 1.55;
+                margin-bottom: 1.3rem;
+                white-space: pre-line;
+              "
+            ></div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end">
+              <button
+                class="btn btn-ghost"
+                type="button"
+                onclick="confirmResolve(false)"
+              >
+                Cancel
+              </button>
+              <button
+                class="btn btn-primary"
+                type="button"
+                id="confirm-ok-btn"
+                onclick="confirmResolve(true)"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Delivery / Supply Network -->
@@ -1944,10 +1998,11 @@
           snLoadNetworkInfo();
         }
         if (id === "initialize") {
-          // Rebuild phase cards from current material history
+          // Rebuild phase cards from current material history, skipping already-closed phases
           _savedPhases = {};
           materials.forEach((m) => {
             m.history.forEach((h) => {
+              if (_closedPhases[h.phase_name]) return; // skip closed phases
               if (!_savedPhases[h.phase_name]) _savedPhases[h.phase_name] = [];
               const existing = _savedPhases[h.phase_name].findIndex(
                 (x) => x.material === m.name,
@@ -1987,6 +2042,7 @@
         }
         if (id === "complete") {
           populatePhaseSelector();
+          renderClosedPhaseCards();
         }
       }
 
@@ -2022,6 +2078,20 @@
         t.classList.add("show");
         clearTimeout(t._tid);
         t._tid = setTimeout(() => t.classList.remove("show"), 3200);
+      }
+
+      /**
+       * Smart weight formatter.
+       * < 1 kg   → grams  (e.g. "450 g")
+       * < 1000   → kg     (e.g. "342 kg")
+       * ≥ 1000   → tonnes (e.g. "12.3 t")
+       */
+      function fmtWeight(kg) {
+        if (kg == null || isNaN(kg)) return "—";
+        if (kg < 1) return `${(kg * 1000).toFixed(0)} g`;
+        if (kg < 1000)
+          return `${kg.toLocaleString(undefined, { maximumFractionDigits: 1 })} kg`;
+        return `${(kg / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} t`;
       }
 
       /* API helper */
@@ -2091,13 +2161,12 @@
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem;">
     <div>
       <div style="font-weight:700;font-size:.9rem;">${m.name}</div>
-      <div class="sub" style="margin-top:.12rem;">${m.unit} &middot; ${m.weight_per_unit}&thinsp;kg/unit</div>
+      <div class="sub" style="margin-top:.12rem;">kg · ${m.phases_logged} phase${m.phases_logged !== 1 ? "s" : ""}</div>
     </div>
     <button class="btn btn-ghost" style="font-size:.68rem;padding:.2rem .5rem;" onclick="deleteMaterial('${m.name}')">✕</button>
   </div>
   <div class="stats" style="margin-bottom:.7rem;">
     <div class="stat"><div class="stat-label">Buffer</div><div class="stat-value">${m.baseline_buffer_pct.toFixed(1)}%</div></div>
-    <div class="stat"><div class="stat-label">Phases</div><div class="stat-value good">${m.phases_logged}</div></div>
   </div>
 </div>`;
           })
@@ -2106,22 +2175,18 @@
 
       async function addMaterial() {
         const name = document.getElementById("new-name").value.trim();
-        const unit = document.getElementById("new-unit").value.trim();
-        if (!name || !unit) return toast("Name and unit required.", "warn");
+        if (!name) return toast("Name required.", "warn");
         try {
           await api("POST", "/materials", {
             name,
-            unit,
+            unit: "kg",
             baseline_buffer_pct: parseFloat(
               document.getElementById("new-buf").value,
             ),
-            weight_per_unit: parseFloat(
-              document.getElementById("new-wt").value,
-            ),
+            weight_per_unit: 1.0,
             priority: 5,
           });
           document.getElementById("new-name").value = "";
-          document.getElementById("new-unit").value = "";
           toast(`'${name}' added.`, "ok");
           await loadMaterials();
         } catch (e) {
@@ -2164,6 +2229,124 @@
       // ─── Phase Setup cards ───────────────────────────────────────
       // Track saved phases for this session so cards persist
       let _savedPhases = {}; // { phaseName: [{ material, unit, planned_qty, buffer_pct, ordered_qty }] }
+      let _closedPhases = {}; // { phaseName: [apiResult, ...] } — read-only after close
+
+      /* ── Confirm dialog ────────────────────────────────────────── */
+      let _confirmResolve = null;
+      function showConfirm(title, body, okLabel = "Confirm") {
+        document.getElementById("confirm-title").textContent = title;
+        document.getElementById("confirm-body").textContent = body;
+        document.getElementById("confirm-ok-btn").textContent = okLabel;
+        const ov = document.getElementById("confirm-overlay");
+        ov.style.display = "flex";
+        return new Promise((res) => {
+          _confirmResolve = res;
+        });
+      }
+      function confirmResolve(val) {
+        document.getElementById("confirm-overlay").style.display = "none";
+        if (_confirmResolve) {
+          _confirmResolve(val);
+          _confirmResolve = null;
+        }
+      }
+
+      /* ── Closed Phase Cards ─────────────────────────────────────── */
+      function renderClosedPhaseCards() {
+        const container = document.getElementById("p5-closed-cards");
+        if (!container) return;
+        const names = Object.keys(_closedPhases);
+        if (!names.length) {
+          container.innerHTML = "";
+          return;
+        }
+
+        container.innerHTML = names
+          .map((phaseName) => {
+            const results = _closedPhases[phaseName];
+            const totPlanned = results.reduce(
+              (s, r) => s + (r.planned_qty || 0),
+              0,
+            );
+            const totOrdered = results.reduce(
+              (s, r) => s + (r.ordered_qty || 0),
+              0,
+            );
+            const totConsumed = results.reduce(
+              (s, r) => s + (r.consumed_qty || 0),
+              0,
+            );
+            const waste =
+              totOrdered > 0
+                ? ((totOrdered - totConsumed) / totOrdered) * 100
+                : 0;
+            const wc =
+              Math.abs(waste) < 5 ? "good" : waste > 0 ? "warn" : "bad";
+
+            const matRows = results
+              .map((r) => {
+                const mwc =
+                  Math.abs(r.waste_pct || 0) < 5
+                    ? "good"
+                    : (r.waste_pct || 0) > 0
+                      ? "warn"
+                      : "bad";
+                return `<tr>
+  <td style="padding:.3rem .5rem;font-weight:600;">${r.material}</td>
+  <td style="padding:.3rem .5rem;color:var(--sub);">${(r.planned_qty || 0).toFixed(2)}</td>
+  <td style="padding:.3rem .5rem;color:var(--green);">${(r.ordered_qty || 0).toFixed(2)}</td>
+  <td style="padding:.3rem .5rem;color:var(--amber);">${(r.consumed_qty || 0).toFixed(2)}</td>
+  <td style="padding:.3rem .5rem;" class="${mwc}">${(r.waste_pct || 0) >= 0 ? "+" : ""}${(r.waste_pct || 0).toFixed(2)}%</td>
+  <td style="padding:.3rem .5rem;color:var(--accent);">${(r.new_buffer_pct || 0).toFixed(2)}%</td>
+</tr>`;
+              })
+              .join("");
+
+            return `
+<div class="card" style="margin-bottom:.75rem;border-left:3px solid var(--green);opacity:.92;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;">
+    <div>
+      <div style="font-weight:700;font-size:.92rem;">✓ ${phaseName}</div>
+      <div class="sub" style="font-size:.72rem;">${results.length} material${results.length !== 1 ? "s" : ""} · phase closed</div>
+    </div>
+    <div style="display:flex;gap:.6rem;align-items:center;">
+      <span style="font-size:.72rem;font-weight:700;padding:.15rem .55rem;border-radius:99px;background:rgba(52,211,153,.12);color:var(--green);">CLOSED</span>
+      <span class="sub" style="font-size:.73rem;">Waste: <strong class="${wc}">${waste >= 0 ? "+" : ""}${waste.toFixed(1)}%</strong></span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.5rem;margin-bottom:.8rem;">
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:.5rem .7rem;">
+      <div style="font-size:.62rem;color:var(--sub);">📋 Planned</div>
+      <div style="font-size:1rem;font-weight:700;color:var(--accent);">${totPlanned.toFixed(1)}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:.5rem .7rem;">
+      <div style="font-size:.62rem;color:var(--sub);">📦 Ordered</div>
+      <div style="font-size:1rem;font-weight:700;color:var(--green);">${totOrdered.toFixed(1)}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:.5rem .7rem;">
+      <div style="font-size:.62rem;color:var(--sub);">🔨 Consumed</div>
+      <div style="font-size:1rem;font-weight:700;color:var(--amber);">${totConsumed.toFixed(1)}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:.5rem .7rem;">
+      <div style="font-size:.62rem;color:var(--sub);">♻ Avg Waste</div>
+      <div style="font-size:1rem;font-weight:700;" class="${wc}">${waste >= 0 ? "+" : ""}${waste.toFixed(1)}%</div>
+    </div>
+  </div>
+  <div class="tbl-wrap"><table style="width:100%;border-collapse:collapse;font-size:.77rem;">
+    <thead><tr style="color:var(--sub);font-size:.67rem;">
+      <th style="padding:.25rem .5rem;text-align:left;">Material</th>
+      <th style="padding:.25rem .5rem;">Planned</th>
+      <th style="padding:.25rem .5rem;">Ordered</th>
+      <th style="padding:.25rem .5rem;">Consumed</th>
+      <th style="padding:.25rem .5rem;">Waste</th>
+      <th style="padding:.25rem .5rem;">New Buffer</th>
+    </tr></thead>
+    <tbody>${matRows}</tbody>
+  </table></div>
+</div>`;
+          })
+          .join("");
+      }
 
       function renderPhaseCards() {
         const container = document.getElementById("p1-phase-cards");
@@ -2177,17 +2360,26 @@
         container.innerHTML = phaseNames
           .map((phaseName) => {
             const items = _savedPhases[phaseName];
+            const safePhase = phaseName.replace(/'/g, "\\'");
             const rows = items
-              .map(
-                (r) => `
-<tr>
+              .map((r, ri) => {
+                const safeMat = r.material.replace(/'/g, "\\'");
+                return `
+<tr id="phase-row-${safePhase}-${ri}">
   <td style="padding:.3rem .5rem;font-weight:600;">${r.material}</td>
-  <td style="padding:.3rem .5rem;color:var(--sub);">${r.unit}</td>
-  <td style="padding:.3rem .5rem;">${r.planned_qty.toLocaleString(undefined, { maximumFractionDigits: 3 })}</td>
+  <td style="padding:.3rem .5rem;color:var(--sub);">kg</td>
+  <td style="padding:.3rem .5rem;">
+    <input id="edit-planned-${safePhase}-${ri}" type="number" value="${r.planned_qty}" min="0" step="any"
+      style="width:90px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:.25rem .4rem;font-size:.78rem;"
+      onchange="recalcOrderedQty('${safePhase}', ${ri})"/>
+  </td>
   <td style="padding:.3rem .5rem;color:var(--amber);">${r.buffer_pct.toFixed(1)}%</td>
-  <td style="padding:.3rem .5rem;color:var(--green);font-weight:700;">${r.ordered_qty.toLocaleString(undefined, { maximumFractionDigits: 3 })}</td>
-</tr>`,
-              )
+  <td id="edit-ordered-${safePhase}-${ri}" style="padding:.3rem .5rem;color:var(--green);font-weight:700;">${r.ordered_qty.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+  <td style="padding:.3rem .5rem;">
+    <button class="btn btn-ok" style="font-size:.68rem;padding:.2rem .55rem;" onclick="savePhaseEdit('${safePhase}', ${ri}, '${safeMat}')">Save</button>
+  </td>
+</tr>`;
+              })
               .join("");
 
             return `
@@ -2195,24 +2387,77 @@
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;">
     <div>
       <div style="font-weight:700;font-size:.92rem;">📋 ${phaseName}</div>
-      <div class="sub" style="font-size:.72rem;">${items.length} material${items.length !== 1 ? "s" : ""} configured</div>
+      <div class="sub" style="font-size:.72rem;">${items.length} material${items.length !== 1 ? "s" : ""} · edit planned qty then hit Save</div>
     </div>
     <button class="btn btn-ghost" style="font-size:.73rem;padding:.25rem .6rem;"
-      onclick="addMaterialToPhase('${phaseName}')">+ Add Material</button>
+      onclick="addMaterialToPhase('${safePhase}')">+ Add Material</button>
   </div>
   <div class="tbl-wrap"><table style="width:100%;border-collapse:collapse;font-size:.78rem;">
     <thead><tr style="color:var(--sub);font-size:.7rem;">
       <th style="padding:.25rem .5rem;text-align:left;">Material</th>
       <th style="padding:.25rem .5rem;text-align:left;">Unit</th>
-      <th style="padding:.25rem .5rem;text-align:left;">Planned</th>
+      <th style="padding:.25rem .5rem;text-align:left;">Planned (kg)</th>
       <th style="padding:.25rem .5rem;text-align:left;">Buffer</th>
       <th style="padding:.25rem .5rem;text-align:left;">Recommended Order</th>
+      <th style="padding:.25rem .5rem;"></th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>
 </div>`;
           })
           .join("");
+      }
+
+      /** Live-recalc the recommended order qty as user types new planned qty */
+      function recalcOrderedQty(phaseName, rowIdx) {
+        const item = _savedPhases[phaseName]?.[rowIdx];
+        if (!item) return;
+        const inp = document.getElementById(
+          `edit-planned-${phaseName}-${rowIdx}`,
+        );
+        const newPlanned = parseFloat(inp?.value);
+        if (!isNaN(newPlanned) && newPlanned > 0) {
+          const ordered =
+            Math.round(newPlanned * (1 + item.buffer_pct / 100) * 10000) /
+            10000;
+          const cell = document.getElementById(
+            `edit-ordered-${phaseName}-${rowIdx}`,
+          );
+          if (cell)
+            cell.textContent = ordered.toLocaleString(undefined, {
+              maximumFractionDigits: 2,
+            });
+        }
+      }
+
+      /** Save a single material's planned qty edit back to the backend */
+      async function savePhaseEdit(phaseName, rowIdx, matName) {
+        const item = _savedPhases[phaseName]?.[rowIdx];
+        if (!item) return;
+        const inp = document.getElementById(
+          `edit-planned-${phaseName}-${rowIdx}`,
+        );
+        const newPlanned = parseFloat(inp?.value);
+        if (isNaN(newPlanned) || newPlanned <= 0)
+          return toast("Enter a valid planned quantity.", "warn");
+        try {
+          const res = await api("POST", "/phase/initialize", {
+            material: matName,
+            phase_name: phaseName,
+            planned_qty: newPlanned,
+          });
+          await loadMaterials();
+          // Update local state
+          item.planned_qty = res.planned_qty;
+          item.ordered_qty = res.ordered_qty;
+          // Refresh inventory if open
+          if (_activeTab === "inventory") loadInventoryOverview();
+          renderPhaseCards();
+          populatePhaseSelector();
+          toast(`Updated ${matName} in "${phaseName}".`, "ok");
+        } catch (e) {
+          toast(e.message, "err");
+        }
       }
 
       function addMaterialToPhase(phaseName) {
@@ -2230,6 +2475,11 @@
       async function submitP1() {
         const phase = document.getElementById("p1-phase").value.trim();
         if (!phase) return toast("Enter a phase name.", "warn");
+        if (_closedPhases[phase])
+          return toast(
+            `"${phase}" is already closed and cannot be re-opened.`,
+            "err",
+          );
         const rows = [...document.querySelectorAll("#p1-rows .row")];
         if (!rows.length) return toast("Add at least one material.", "warn");
         const plan = rows
@@ -2466,10 +2716,19 @@
           if (prefix === "p3") renderPhaseSnapshot();
           return;
         }
-        sel.innerHTML = m.history
-          .map((p, i) => `<option value="${i}">${p.phase_name}</option>`)
+        // Filter out phases that have been closed in this session, but preserve original index as value
+        const history = m.history
+          .map((p, i) => ({ ...p, _origIdx: i }))
+          .filter((h) => !_closedPhases[h.phase_name]);
+        if (!history.length) {
+          sel.innerHTML = '<option value="-1">No active phases</option>';
+          if (prefix === "p3") renderPhaseSnapshot();
+          return;
+        }
+        sel.innerHTML = history
+          .map((p) => `<option value="${p._origIdx}">${p.phase_name}</option>`)
           .join("");
-        sel.value = m.history.length - 1;
+        sel.value = history[history.length - 1]._origIdx;
         if (prefix === "p3") renderPhaseSnapshot();
       }
 
@@ -2676,7 +2935,7 @@
       .map(
         (a) => `
       <div style="font-size:.73rem;padding:.2rem 0;border-bottom:1px solid var(--border);">
-        🚛 <b>${a.truck_id}</b> — ${a.load_kg.toLocaleString()} kg · ${a.distance_km} km
+        🚛 <b>${a.truck_id}</b> — ${fmtWeight(a.load_kg)} · ${a.distance_km} km
         <span style="color:var(--sub);">${a.route.map((r) => r.name).join(" → ")}</span>
       </div>`,
       )
@@ -2828,9 +3087,9 @@
   <div class="stats">
     <div class="stat"><div class="stat-label">Trucks</div><div class="stat-value">${sum.total_trucks ?? "—"}</div></div>
     <div class="stat"><div class="stat-label">Depots</div><div class="stat-value">${sum.depots_used ?? "—"}</div></div>
-    <div class="stat"><div class="stat-label">Total kg</div><div class="stat-value">${sum.total_kg ? sum.total_kg.toLocaleString() : "—"}</div></div>
+    <div class="stat"><div class="stat-label">Weight</div><div class="stat-value">${fmtWeight(sum.total_kg)}</div></div>
     <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${sum.total_km ? sum.total_km.toLocaleString() + " km" : "—"}</div></div>
-    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${sum.total_co2_kg ? sum.total_co2_kg.toLocaleString() + " kg" : "—"}</div></div>
+    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${fmtWeight(sum.total_co2_kg)}</div></div>
   </div>
   ${(csp.depot_plans || [])
     .map(
@@ -2840,7 +3099,7 @@
       .map(
         (a) => `
       <div style="font-size:.72rem;padding:.18rem 0;border-bottom:1px solid var(--border);">
-        🚛 <b>${a.truck_id}</b> — ${a.load_kg.toLocaleString()} kg · ${a.distance_km} km
+        🚛 <b>${a.truck_id}</b> — ${fmtWeight(a.load_kg)} · ${a.distance_km} km
         <span style="color:var(--sub);">${a.route.map((r) => r.name).join(" → ")}</span>
       </div>`,
       )
@@ -3100,12 +3359,21 @@
       function populatePhaseSelector() {
         const sel = document.getElementById("p5-phase-sel");
         if (!sel) return;
-        const phases = Object.keys(_savedPhases);
+        // Only show phases that are not yet closed
+        const phases = Object.keys(_savedPhases).filter(
+          (p) => !_closedPhases[p],
+        );
         const prev = sel.value;
         sel.innerHTML =
           '<option value="">— select a phase —</option>' +
           phases.map((p) => `<option value="${p}">${p}</option>`).join("");
         if (phases.includes(prev)) sel.value = prev;
+        else if (prev && !phases.includes(prev)) {
+          // Previously selected phase is now closed — reset form
+          document.getElementById("p5-mat-list").innerHTML =
+            `<div class="sub" style="text-align:center;padding:1rem;">Select a phase above to load its materials.</div>`;
+          document.getElementById("p5-actions").style.display = "none";
+        }
       }
 
       /** Auto-fill the material rows when a phase is selected */
@@ -3156,10 +3424,14 @@
         actionsEl.style.display = "flex";
       }
 
+      let _completingPhase = false;
       async function completePhase() {
+        if (_completingPhase) return;
         const phase = document.getElementById("p5-phase-sel").value.trim();
         if (!phase) return toast("Select a phase to close.", "warn");
-        const rows = [...document.querySelectorAll(".cp-consumed")];
+        const rows = [
+          ...document.querySelectorAll("#p5-mat-list .cp-consumed"),
+        ];
         if (!rows.length)
           return toast("No materials loaded for this phase.", "warn");
 
@@ -3173,59 +3445,93 @@
             "warn",
           );
 
-        const results = [],
-          errors = [];
-        for (const row of rows) {
-          const mat = row.dataset.material;
-          const planned = parseFloat(row.dataset.planned);
-          const ordered = parseFloat(row.dataset.ordered);
-          const consumed = parseFloat(row.value);
-          const carryInEl = row
-            .closest(".cp-mat-row")
-            ?.querySelector(".cp-carryin");
-          const carryin = parseFloat(carryInEl?.value) || 0;
-          try {
-            const r = await api("POST", "/phase/complete", {
-              material: mat,
-              phase_name: phase,
-              planned_qty: planned,
-              ordered_qty: ordered,
-              consumed_qty: consumed,
-              carry_in: carryin,
-            });
-            results.push(r);
-          } catch (e) {
-            errors.push({ mat, msg: e.message });
+        // ── Confirmation dialog ──────────────────────────────────
+        const matList = rows
+          .map(
+            (r) => `• ${r.dataset.material} — ${parseFloat(r.value)} consumed`,
+          )
+          .join("\n");
+        const ok = await showConfirm(
+          `Close phase "${phase}"?`,
+          `This will permanently close the phase for ${rows.length} material${rows.length !== 1 ? "s" : ""}:\n\n${matList}\n\nThis action cannot be undone.`,
+          "Close Phase",
+        );
+        if (!ok) return;
+
+        _completingPhase = true;
+        const btn = document.querySelector("#p5-actions .btn-primary");
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Closing…";
+        }
+
+        try {
+          const results = [],
+            errors = [];
+          for (const row of rows) {
+            const mat = row.dataset.material;
+            const planned = parseFloat(row.dataset.planned);
+            const ordered = parseFloat(row.dataset.ordered);
+            const consumed = parseFloat(row.value);
+            const carryInEl = row
+              .closest(".cp-mat-row")
+              ?.querySelector(".cp-carryin");
+            const carryin = parseFloat(carryInEl?.value) || 0;
+            try {
+              const r = await api("POST", "/phase/complete", {
+                material: mat,
+                phase_name: phase,
+                planned_qty: planned,
+                ordered_qty: ordered,
+                consumed_qty: consumed,
+                carry_in: carryin,
+              });
+              results.push(r);
+            } catch (e) {
+              errors.push({ mat, msg: e.message });
+            }
           }
-        }
 
-        await loadMaterials();
-        loadPhases("p3");
-        if (_activeTab === "inventory") loadInventoryOverview();
+          await loadMaterials();
+          loadPhases("p3");
+          if (_activeTab === "inventory") loadInventoryOverview();
 
-        if (errors.length) {
-          toast(
-            `${results.length} closed, ${errors.length} error(s): ${errors.map((e) => e.mat).join(", ")}`,
-            "warn",
-          );
-        } else {
-          toast(
-            `Phase "${phase}" closed — ${results.length} material(s).`,
-            "ok",
-          );
-        }
+          if (errors.length) {
+            toast(
+              `${results.length} closed, ${errors.length} error(s): ${errors.map((e) => e.mat).join(", ")}`,
+              "warn",
+            );
+          } else {
+            toast(
+              `Phase "${phase}" closed — ${results.length} material(s).`,
+              "ok",
+            );
+          }
 
-        // Remove this phase from _savedPhases so it disappears from selector
-        delete _savedPhases[phase];
-        populatePhaseSelector();
-        document.getElementById("p5-phase-sel").value = "";
-        document.getElementById("p5-mat-list").innerHTML =
-          `<div class="sub" style="text-align:center;padding:1rem;">Phase closed. Select another phase to continue.</div>`;
-        document.getElementById("p5-actions").style.display = "none";
+          // Store in closed phases tracker and render card
+          if (results.length) {
+            _closedPhases[phase] = results;
+            renderClosedPhaseCards();
+            // Scroll to the new closed card
+            document
+              .getElementById("p5-closed-cards")
+              .scrollIntoView({ behavior: "smooth", block: "start" });
+          }
 
-        // Render combined phase report
-        if (results.length) {
-          renderPhaseReport(phase, results);
+          // Remove from active phases and reset the form
+          delete _savedPhases[phase];
+          populatePhaseSelector();
+          document.getElementById("p5-phase-sel").value = "";
+          document.getElementById("p5-mat-list").innerHTML =
+            `<div class="sub" style="text-align:center;padding:1rem;">Phase closed. Select another phase to continue.</div>`;
+          document.getElementById("p5-actions").style.display = "none";
+          document.getElementById("p5-output").innerHTML = "";
+        } finally {
+          _completingPhase = false;
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = "Close Phase";
+          }
         }
       }
 
@@ -3407,7 +3713,7 @@
 <div class="row" style="margin-bottom:.38rem;">
   <div class="field" style="max-width:155px;flex:none;">
     <label style="font-weight:600;">${m.name}</label>
-    <div class="sub" style="font-size:.68rem;">${m.unit} &middot; ${m.weight_per_unit}kg/unit</div>
+    <div class="sub" style="font-size:.68rem;">kg</div>
   </div>
   <div class="field" style="max-width:125px;">
     <label>Dispatch Qty</label>
@@ -3865,7 +4171,7 @@
             (m) => `
 <div style="display:flex;align-items:center;gap:.7rem;padding:.35rem 0;border-bottom:1px solid var(--border);">
   <span style="flex:1;font-weight:600;font-size:.84rem;">${m.name}</span>
-  <span class="sub" style="font-size:.72rem;min-width:90px;">${m.unit} · ${m.weight_per_unit} kg/unit</span>
+  <span class="sub" style="font-size:.72rem;min-width:60px;">kg</span>
   <div class="field" style="margin:0;min-width:110px;">
     <input id="sn-qty-${m.name}" type="number" value="0" min="0" step="any"
       style="width:100%;text-align:right;" placeholder="0"/>
@@ -3970,9 +4276,9 @@
     ["🚛", "Trucks", s.total_trucks],
     ["🏭", "Depots", s.depots_used],
     ["🏪", "Stores", s.stores_sourced],
-    ["📦", "Total kg", s.total_kg.toLocaleString()],
+    ["📦", "Weight", fmtWeight(s.total_kg)],
     ["🛣️", "Total km", s.total_km.toFixed(0)],
-    ["🌿", "CO₂ kg", s.total_co2_kg.toFixed(1)],
+    ["🌿", "CO₂", fmtWeight(s.total_co2_kg)],
   ]
     .map(
       ([ic, label, val]) => `
@@ -4041,7 +4347,7 @@
   </div>
   <div class="prog" style="margin-bottom:.6rem;"><div class="prog-fill" style="width:${u}%;background:${fc};"></div></div>
   <div class="stats" style="margin-bottom:.55rem;">
-    <div class="stat"><div class="stat-label">Loaded</div><div class="stat-value">${a.load_kg.toLocaleString()} kg</div></div>
+    <div class="stat"><div class="stat-label">Loaded</div><div class="stat-value">${fmtWeight(a.load_kg)}</div></div>
     <div class="stat"><div class="stat-label">Util.</div><div class="stat-value ${u < 40 ? "bad" : u < 70 ? "warn" : "good"}">${u.toFixed(0)}%</div></div>
     <div class="stat"><div class="stat-label">Dist.</div><div class="stat-value">${a.distance_km.toFixed(0)} km</div></div>
     <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${a.co2_kg.toFixed(1)} kg</div></div>
@@ -4493,7 +4799,12 @@
             grid.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;grid-column:1/-1;">No materials yet.</div>`;
             return;
           }
-          grid.innerHTML = mats
+          const activeMats = mats.filter((m) => m.history?.length > 0);
+          if (!activeMats.length) {
+            grid.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;grid-column:1/-1;">No inventory data yet. Start by setting up a phase.</div>`;
+            return;
+          }
+          grid.innerHTML = activeMats
             .map((m) => {
               const lastPhase = m.history?.at(-1);
               const remaining = lastPhase?.remaining_stock ?? null;
@@ -4516,9 +4827,6 @@
     ${remaining != null ? remaining.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"}
     <span style="font-size:.65rem;font-weight:500;color:var(--sub);"> ${m.unit} in stock</span>
   </div>
-  ${
-    lastPhase
-      ? `
   <div style="display:flex;gap:.6rem;margin-top:.55rem;">
     <div style="flex:1;background:rgba(255,255,255,.05);border-radius:7px;padding:.35rem .5rem;text-align:center;">
       <div style="font-size:.62rem;color:var(--sub);margin-bottom:.1rem;">Used</div>
@@ -4536,9 +4844,6 @@
     </div>
   </div>
   <div style="font-size:.62rem;color:var(--sub);margin-top:.35rem;">${lastPhase.phase_name}</div>
-  `
-      : `<div style="font-size:.67rem;color:var(--sub);margin-top:.3rem;">No phase data</div>`
-  }
 </div>`;
             })
             .join("");
@@ -4941,16 +5246,16 @@ ${
   <div style="font-weight:700;font-size:.78rem;color:var(--accent);margin-bottom:.45rem;">📦 Optimal Route</div>
   <div class="stats" style="margin-bottom:.45rem;">
     <div class="stat"><div class="stat-label">Trucks</div><div class="stat-value">${sum.total_trucks ?? "—"}</div></div>
-    <div class="stat"><div class="stat-label">Weight</div><div class="stat-value">${sum.total_kg?.toLocaleString() ?? "—"} kg</div></div>
+    <div class="stat"><div class="stat-label">Weight</div><div class="stat-value">${fmtWeight(sum.total_kg)}</div></div>
     <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${sum.total_km?.toLocaleString() ?? "—"} km</div></div>
-    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${sum.total_co2_kg?.toLocaleString() ?? "—"} kg</div></div>
+    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${fmtWeight(sum.total_co2_kg)}</div></div>
   </div>`;
           (sp.depot_plans || []).forEach((dp) => {
             const depotName = dp.depot?.name || "Depot";
             routeHTML += `<div style="font-size:.72rem;font-weight:700;color:var(--sub);margin-top:.4rem;">${depotName}</div>`;
             (dp.assignments || []).forEach((a) => {
               routeHTML += `<div style="font-size:.7rem;padding:.18rem 0;border-bottom:1px solid rgba(255,255,255,.04);">
-                🚛 <b>${a.truck_id}</b> · ${a.load_kg?.toLocaleString() ?? "—"} kg · ${a.distance_km ?? "—"} km
+                🚛 <b>${a.truck_id}</b> · ${fmtWeight(a.load_kg)} · ${a.distance_km ?? "—"} km
                 <span style="color:var(--sub);">${(a.route || []).map((r) => r.name || r).join(" → ")}</span>
               </div>`;
             });
@@ -5055,9 +5360,9 @@ ${
   </div>
   <div class="stats">
     <div class="stat"><div class="stat-label">Trucks</div><div class="stat-value">${sum.total_trucks ?? "—"}</div></div>
-    <div class="stat"><div class="stat-label">Weight</div><div class="stat-value">${sum.total_kg?.toLocaleString() ?? "—"} kg</div></div>
+    <div class="stat"><div class="stat-label">Weight</div><div class="stat-value">${fmtWeight(sum.total_kg)}</div></div>
     <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${sum.total_km?.toLocaleString() ?? "—"} km</div></div>
-    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${sum.total_co2_kg?.toLocaleString() ?? "—"} kg</div></div>
+    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${fmtWeight(sum.total_co2_kg)}</div></div>
   </div>
 </div>`;
           approveBtn.textContent = "✓ Approved";
@@ -5403,10 +5708,12 @@ ${
             _destroyChart(k);
           });
         const matChartsEl = document.getElementById("analytics-mat-charts");
-        if (!mats.length) {
-          matChartsEl.innerHTML = "";
+        // Only show materials that have at least one phase entry
+        const activeMatsAnalytics = mats.filter((m) => m.history?.length > 0);
+        if (!activeMatsAnalytics.length) {
+          matChartsEl.innerHTML = `<div class="sub" style="text-align:center;padding:1.5rem;grid-column:1/-1;">No phase data yet. Set up a phase to see per-material breakdowns.</div>`;
         } else {
-          matChartsEl.innerHTML = mats
+          matChartsEl.innerHTML = activeMatsAnalytics
             .map((m, idx) => {
               const ph = m.history?.at(-1);
               const planned = ph ? +(ph.planned_qty || 0).toFixed(2) : 0;
@@ -5436,7 +5743,7 @@ ${
             .join("");
 
           // Draw per-material horizontal bullet-style bar chart
-          mats.forEach((m, idx) => {
+          activeMatsAnalytics.forEach((m, idx) => {
             const ph = m.history?.at(-1);
             if (!ph) return;
             const planned = +(ph.planned_qty || 0).toFixed(2);
