@@ -198,7 +198,8 @@ def list_projects() -> List[dict]:
     """Return all projects, newest first."""
     return list(reversed(_load_projects_raw()))
 
-def create_project(name: str, dest_lat: float, dest_lon: float, dest_name: str) -> dict:
+def create_project(name: str, dest_lat: float, dest_lon: float, dest_name: str,
+                   start_date: str = None, end_date: str = None) -> dict:
     """Create a new project, persist it, and return it."""
     import uuid
     from datetime import datetime as _dt
@@ -209,6 +210,8 @@ def create_project(name: str, dest_lat: float, dest_lon: float, dest_name: str) 
         "dest_lat":   dest_lat,
         "dest_lon":   dest_lon,
         "dest_name":  dest_name,
+        "start_date": start_date,
+        "end_date":   end_date,
         "created_at": _dt.utcnow().isoformat() + "Z",
     }
     projects.append(project)

@@ -701,6 +701,8 @@ def post_create_project():
         dest_lat=float(body["dest_lat"]),
         dest_lon=float(body["dest_lon"]),
         dest_name=body["dest_name"],
+        start_date=body.get("start_date"),
+        end_date=body.get("end_date"),
     )
     return jsonify(project), 201
 

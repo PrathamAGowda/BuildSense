@@ -9,6 +9,7 @@
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
       *,
       *::before,
@@ -252,7 +253,57 @@
         }
       }
 
+      /* Close Phase — material rows */
+      .cp-mat-row {
+        display: grid;
+        grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 0.8fr;
+        gap: 0.5rem;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.82rem;
+      }
+      .cp-mat-row:last-child {
+        border-bottom: none;
+      }
+      .cp-mat-header {
+        display: grid;
+        grid-template-columns: 1.4fr 0.9fr 0.9fr 1fr 0.8fr;
+        gap: 0.5rem;
+        padding: 0.3rem 0;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--sub);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 0.2rem;
+      }
+      .cp-mat-name {
+        font-weight: 600;
+      }
+      .cp-ro-field {
+        color: var(--sub);
+        font-size: 0.8rem;
+      }
+      .hidden-until-phase {
+        display: none;
+      }
+
       /* Inventory tab switcher */
+      .inv-tab {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.55rem 1.1rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        border-bottom: 2px solid transparent;
+        transition:
+          color 0.12s,
+          border-color 0.12s;
+        color: var(--sub);
+      }
       .inv-tab.active-tab {
         color: var(--accent) !important;
         border-bottom-color: var(--accent) !important;
@@ -808,6 +859,14 @@
                 </button>
               </div>
             </div>
+            <div class="field" style="min-width: 140px">
+              <label>Start Date</label>
+              <input id="proj-start-date" type="date" />
+            </div>
+            <div class="field" style="min-width: 140px">
+              <label>End Date (Deadline)</label>
+              <input id="proj-end-date" type="date" />
+            </div>
             <button
               class="btn btn-primary"
               onclick="createProject()"
@@ -861,6 +920,9 @@
           <button onclick="goto('initialize')">
             <span class="ico">✦</span> Phase Setup
           </button>
+          <button onclick="goto('complete')">
+            <span class="ico">✓</span> Close Phase
+          </button>
 
           <div class="nav-section">Operations</div>
           <button onclick="goto('order')">
@@ -877,13 +939,15 @@
               style="display: none"
             ></span>
           </button>
-          <button onclick="goto('complete')">
-            <span class="ico">✓</span> Close Phase
-          </button>
 
           <div class="nav-section">Logistics</div>
           <button onclick="goto('delivery')">
             <span class="ico">⬡</span> Supply Planner
+          </button>
+
+          <div class="nav-section">Insights</div>
+          <button onclick="goto('analytics')">
+            <span class="ico">📊</span> Analytics
           </button>
         </nav>
       </aside>
@@ -1061,36 +1125,16 @@
             <button
               id="inv-tab-log"
               class="inv-tab active-tab"
+              type="button"
               onclick="switchInvTab('log')"
-              style="
-                background: none;
-                border: none;
-                cursor: pointer;
-                padding: 0.55rem 1.1rem;
-                font-size: 0.82rem;
-                font-weight: 600;
-                color: var(--accent);
-                border-bottom: 2px solid var(--accent);
-                transition: all 0.12s;
-              "
             >
               Log Usage
             </button>
             <button
               id="inv-tab-history"
               class="inv-tab"
+              type="button"
               onclick="switchInvTab('history')"
-              style="
-                background: none;
-                border: none;
-                cursor: pointer;
-                padding: 0.55rem 1.1rem;
-                font-size: 0.82rem;
-                font-weight: 600;
-                color: var(--sub);
-                border-bottom: 2px solid transparent;
-                transition: all 0.12s;
-              "
             >
               Usage History
             </button>
@@ -1323,66 +1367,50 @@
         <div class="section" id="s-complete">
           <div class="page-hd">Close Phase</div>
           <div class="page-sub">
-            Record actual consumption. Waste percentage is calculated and the
-            buffer is adapted via EMA for future orders.
+            Select a phase to close — all materials are loaded automatically
+            with their planned quantities. Enter actual consumed amounts for
+            each material, then close the entire phase at once.
           </div>
           <div class="card">
-            <div class="row" style="margin-bottom: 0.7rem">
-              <div class="field">
-                <label>Material</label
-                ><select id="p5-mat"></select>
-              </div>
-              <div class="field">
-                <label>Phase Name</label
-                ><input id="p5-phase" placeholder="e.g. Foundation" />
-              </div>
-            </div>
-            <div class="row">
-              <div class="field">
-                <label>Planned Qty</label
-                ><input
-                  id="p5-planned"
-                  type="number"
-                  placeholder="200"
-                  step="any"
-                />
-              </div>
-              <div class="field">
-                <label>Ordered Qty</label
-                ><input
-                  id="p5-ordered"
-                  type="number"
-                  placeholder="212"
-                  step="any"
-                />
-              </div>
-              <div class="field">
-                <label>Consumed Qty</label
-                ><input
-                  id="p5-consumed"
-                  type="number"
-                  placeholder="195"
-                  step="any"
-                />
-              </div>
-              <div class="field" style="max-width: 120px">
-                <label>Carry-in</label
-                ><input id="p5-carryin" type="number" value="0" step="any" />
+            <div
+              class="row"
+              style="margin-bottom: 0.9rem; align-items: flex-end"
+            >
+              <div class="field" style="max-width: 280px">
+                <label>Phase to Close</label>
+                <select id="p5-phase-sel" onchange="fillClosePhaseForm()">
+                  <option value="">— select a phase —</option>
+                </select>
               </div>
             </div>
-            <div style="display: flex; gap: 0.45rem; margin-top: 0.7rem">
-              <button class="btn btn-primary" onclick="completePhase()">
+            <div id="p5-mat-list">
+              <div class="sub" style="text-align: center; padding: 1rem">
+                Select a phase above to load its materials.
+              </div>
+            </div>
+            <div
+              style="display: flex; gap: 0.45rem; margin-top: 0.9rem"
+              id="p5-actions"
+              class="hidden-until-phase"
+            >
+              <button
+                class="btn btn-primary"
+                type="button"
+                onclick="completePhase()"
+              >
                 Close Phase
               </button>
-              <button class="btn btn-ghost" onclick="loadHistory()">
+              <button
+                class="btn btn-ghost"
+                type="button"
+                onclick="loadHistory()"
+              >
                 View History
               </button>
             </div>
           </div>
           <div id="p5-output"></div>
           <div id="p5-history"></div>
-
-          <!-- ── Reorder Transaction Log ─────────────────────────── -->
         </div>
 
         <!-- Delivery / Supply Network -->
@@ -1797,6 +1825,81 @@
             </div>
           </details>
         </div>
+
+        <!-- Analytics -->
+        <div class="section" id="s-analytics">
+          <div class="page-hd">Analytics</div>
+          <div class="page-sub" id="analytics-subtitle">
+            Project insights and material monitoring.
+          </div>
+
+          <!-- KPI row -->
+          <div
+            id="analytics-kpis"
+            style="
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+              gap: 0.65rem;
+              margin-bottom: 1.2rem;
+            "
+          ></div>
+
+          <!-- Charts row -->
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 1rem;
+              margin-bottom: 1rem;
+            "
+          >
+            <div class="card" style="margin: 0">
+              <div class="card-hd" style="margin-bottom: 0.7rem">
+                📈 Daily Burn Rate (last 14 days)
+              </div>
+              <div style="position: relative; height: 180px">
+                <canvas id="chart-burn"></canvas>
+              </div>
+            </div>
+            <div class="card" style="margin: 0">
+              <div class="card-hd" style="margin-bottom: 0.5rem">
+                ♻ Phase Waste — Closed Phases
+              </div>
+              <div style="position: relative; height: 180px">
+                <canvas id="chart-waste"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Per-material usage breakdown -->
+          <div
+            class="card-hd"
+            style="margin-bottom: 0.6rem; margin-top: 0.2rem"
+          >
+            📊 Per-Material · Planned vs Ordered vs Consumed
+          </div>
+          <div
+            id="analytics-mat-charts"
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 0.75rem;
+              margin-bottom: 1rem;
+            "
+          ></div>
+
+          <!-- Insights list -->
+          <div class="card">
+            <div class="card-hd" style="margin-bottom: 0.8rem">
+              🧠 Smart Insights
+            </div>
+            <div id="analytics-insights">
+              <div class="sub" style="text-align: center; padding: 1rem">
+                Loading…
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
     <!-- end #app-shell -->
@@ -1810,11 +1913,12 @@
       const NAV_IDS = [
         "materials",
         "initialize",
+        "complete",
         "order",
         "inventory",
         "reorder",
-        "complete",
         "delivery",
+        "analytics",
       ];
 
       /* Navigation */
@@ -1862,6 +1966,7 @@
             });
           });
           renderPhaseCards();
+          populatePhaseSelector();
           if (!document.querySelector("#p1-rows .row")) addP1Row();
         }
         if (id === "inventory") {
@@ -1877,6 +1982,12 @@
         if (id === "materials") {
           loadMaterials().catch(() => {});
         }
+        if (id === "analytics") {
+          loadAnalytics();
+        }
+        if (id === "complete") {
+          populatePhaseSelector();
+        }
       }
 
       /** Silently refresh whatever tab is currently visible. */
@@ -1890,6 +2001,8 @@
             loadInventoryOverview();
           } else if (_activeTab === "materials") {
             loadMaterials().catch(() => {});
+          } else if (_activeTab === "analytics") {
+            loadAnalytics();
           }
           refreshPendingBadge();
         } catch (_) {}
@@ -1934,7 +2047,7 @@
 
       function populateSelects() {
         const names = materials.map((m) => m.name);
-        ["p2-mat", "p3-mat", "p4-mat", "p5-mat"].forEach((id) => {
+        ["p2-mat", "p3-mat", "p4-mat"].forEach((id) => {
           const el = document.getElementById(id);
           if (!el) return;
           const cur = el.value;
@@ -2165,6 +2278,8 @@
           else _savedPhases[phase].push(entry);
         });
         renderPhaseCards();
+        // Also refresh the Close Phase phase selector
+        populatePhaseSelector();
 
         // Clear the rows and phase name so the form is ready for the next phase
         document.getElementById("p1-rows").innerHTML = "";
@@ -2980,80 +3095,271 @@
       }
 
       /* Close Phase */
-      async function completePhase() {
-        const mat = document.getElementById("p5-mat").value;
-        const phase = document.getElementById("p5-phase").value.trim();
-        const planned = parseFloat(document.getElementById("p5-planned").value);
-        const ordered = parseFloat(document.getElementById("p5-ordered").value);
-        const consumed = parseFloat(
-          document.getElementById("p5-consumed").value,
-        );
-        const carryin =
-          parseFloat(document.getElementById("p5-carryin").value) || 0;
-        if (!phase) return toast("Enter a phase name.", "warn");
-        if ([planned, ordered, consumed].some(isNaN))
-          return toast("Fill in all qty fields.", "warn");
-        try {
-          const r = await api("POST", "/phase/complete", {
-            material: mat,
-            phase_name: phase,
-            planned_qty: planned,
-            ordered_qty: ordered,
-            consumed_qty: consumed,
-            carry_in: carryin,
-          });
-          await loadMaterials();
-          loadPhases("p3");
-          if (_activeTab === "inventory") loadInventoryOverview();
-          const dir = r.waste_pct >= 0 ? "over-ordered" : "under-ordered";
-          const wc =
-            Math.abs(r.waste_pct) < 5
-              ? "good"
-              : r.waste_pct > 0
-                ? "warn"
-                : "bad";
-          document.getElementById("p5-output").innerHTML = `
-<div class="card">
-  <div class="banner b-ok">✓ <strong>${r.phase_name}</strong> closed for <strong>${r.material}</strong></div>
-  <div class="stats">
-    <div class="stat"><div class="stat-label">Planned</div><div class="stat-value">${r.planned_qty.toFixed(3)}</div></div>
-    <div class="stat"><div class="stat-label">Ordered</div><div class="stat-value">${r.ordered_qty.toFixed(3)}</div></div>
-    <div class="stat"><div class="stat-label">Consumed</div><div class="stat-value">${r.consumed_qty.toFixed(3)}</div></div>
-    <div class="stat"><div class="stat-label">Remaining</div><div class="stat-value good">${r.remaining_stock.toFixed(3)}</div></div>
-    <div class="stat"><div class="stat-label">Waste</div><div class="stat-value ${wc}">${r.waste_pct >= 0 ? "+" : ""}${r.waste_pct.toFixed(2)}%</div></div>
-    <div class="stat"><div class="stat-label">New Buffer</div><div class="stat-value warn">${r.new_buffer_pct.toFixed(2)}%</div></div>
-  </div>
-  <div class="sub mt">${dir.charAt(0).toUpperCase() + dir.slice(1)} by ${Math.abs(r.waste_pct).toFixed(2)}% &middot; Buffer ${r.baseline_buffer.toFixed(2)}% &rarr; ${r.new_buffer_pct.toFixed(2)}% &middot; ${r.phases_logged} phases total</div>
+
+      /** Populate the phase selector from _savedPhases keys */
+      function populatePhaseSelector() {
+        const sel = document.getElementById("p5-phase-sel");
+        if (!sel) return;
+        const phases = Object.keys(_savedPhases);
+        const prev = sel.value;
+        sel.innerHTML =
+          '<option value="">— select a phase —</option>' +
+          phases.map((p) => `<option value="${p}">${p}</option>`).join("");
+        if (phases.includes(prev)) sel.value = prev;
+      }
+
+      /** Auto-fill the material rows when a phase is selected */
+      function fillClosePhaseForm() {
+        const phase = document.getElementById("p5-phase-sel").value;
+        const listEl = document.getElementById("p5-mat-list");
+        const actionsEl = document.getElementById("p5-actions");
+        if (!phase || !_savedPhases[phase]) {
+          listEl.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;">Select a phase above to load its materials.</div>`;
+          actionsEl.style.display = "none";
+          return;
+        }
+        const items = _savedPhases[phase];
+        const header = `
+<div class="cp-mat-header">
+  <div>Material</div>
+  <div>Planned</div>
+  <div>Ordered</div>
+  <div>Consumed (actual)</div>
+  <div>Carry-in</div>
 </div>`;
-          toast("Phase closed. Buffer updated.", "ok");
-        } catch (e) {
-          toast(e.message, "err");
+        const rows = items
+          .map(
+            (item, i) => `
+<div class="cp-mat-row" id="cp-row-${i}">
+  <div class="cp-mat-name">${item.material} <span class="sub" style="font-size:.72rem;">${item.unit}</span></div>
+  <div class="cp-ro-field">${item.planned_qty.toLocaleString(undefined, { maximumFractionDigits: 3 })}</div>
+  <div class="cp-ro-field">${item.ordered_qty.toLocaleString(undefined, { maximumFractionDigits: 3 })}</div>
+  <div>
+    <input class="cp-consumed" type="number" step="any" min="0"
+      placeholder="${item.planned_qty.toFixed(1)}"
+      style="width:100%;padding:.3rem .5rem;font-size:.82rem;background:var(--surface2);
+             border:1px solid var(--border);border-radius:6px;color:var(--text);"
+      data-material="${item.material}"
+      data-planned="${item.planned_qty}"
+      data-ordered="${item.ordered_qty}"/>
+  </div>
+  <div>
+    <input class="cp-carryin" type="number" step="any" min="0" value="0"
+      style="width:100%;padding:.3rem .5rem;font-size:.82rem;background:var(--surface2);
+             border:1px solid var(--border);border-radius:6px;color:var(--text);"
+      data-material="${item.material}"/>
+  </div>
+</div>`,
+          )
+          .join("");
+        listEl.innerHTML = header + rows;
+        actionsEl.style.display = "flex";
+      }
+
+      async function completePhase() {
+        const phase = document.getElementById("p5-phase-sel").value.trim();
+        if (!phase) return toast("Select a phase to close.", "warn");
+        const rows = [...document.querySelectorAll(".cp-consumed")];
+        if (!rows.length)
+          return toast("No materials loaded for this phase.", "warn");
+
+        // Validate all consumed fields are filled
+        const missingMat = rows.find(
+          (r) => r.value === "" || isNaN(parseFloat(r.value)),
+        );
+        if (missingMat)
+          return toast(
+            `Enter consumed qty for ${missingMat.dataset.material}.`,
+            "warn",
+          );
+
+        const results = [],
+          errors = [];
+        for (const row of rows) {
+          const mat = row.dataset.material;
+          const planned = parseFloat(row.dataset.planned);
+          const ordered = parseFloat(row.dataset.ordered);
+          const consumed = parseFloat(row.value);
+          const carryInEl = row
+            .closest(".cp-mat-row")
+            ?.querySelector(".cp-carryin");
+          const carryin = parseFloat(carryInEl?.value) || 0;
+          try {
+            const r = await api("POST", "/phase/complete", {
+              material: mat,
+              phase_name: phase,
+              planned_qty: planned,
+              ordered_qty: ordered,
+              consumed_qty: consumed,
+              carry_in: carryin,
+            });
+            results.push(r);
+          } catch (e) {
+            errors.push({ mat, msg: e.message });
+          }
+        }
+
+        await loadMaterials();
+        loadPhases("p3");
+        if (_activeTab === "inventory") loadInventoryOverview();
+
+        if (errors.length) {
+          toast(
+            `${results.length} closed, ${errors.length} error(s): ${errors.map((e) => e.mat).join(", ")}`,
+            "warn",
+          );
+        } else {
+          toast(
+            `Phase "${phase}" closed — ${results.length} material(s).`,
+            "ok",
+          );
+        }
+
+        // Remove this phase from _savedPhases so it disappears from selector
+        delete _savedPhases[phase];
+        populatePhaseSelector();
+        document.getElementById("p5-phase-sel").value = "";
+        document.getElementById("p5-mat-list").innerHTML =
+          `<div class="sub" style="text-align:center;padding:1rem;">Phase closed. Select another phase to continue.</div>`;
+        document.getElementById("p5-actions").style.display = "none";
+
+        // Render combined phase report
+        if (results.length) {
+          renderPhaseReport(phase, results);
         }
       }
 
+      function renderPhaseReport(phaseName, results) {
+        const totPlanned = results.reduce((s, r) => s + r.planned_qty, 0);
+        const totOrdered = results.reduce((s, r) => s + r.ordered_qty, 0);
+        const totConsumed = results.reduce((s, r) => s + r.consumed_qty, 0);
+        const totRemaining = results.reduce((s, r) => s + r.remaining_stock, 0);
+        const overallWaste =
+          totOrdered > 0 ? ((totOrdered - totConsumed) / totOrdered) * 100 : 0;
+        const wc =
+          Math.abs(overallWaste) < 5
+            ? "good"
+            : overallWaste > 0
+              ? "warn"
+              : "bad";
+
+        const matRows = results
+          .map((r) => {
+            const mwc =
+              Math.abs(r.waste_pct) < 5
+                ? "good"
+                : r.waste_pct > 0
+                  ? "warn"
+                  : "bad";
+            const eff =
+              r.planned_qty > 0
+                ? Math.max(
+                    0,
+                    Math.min(100, (r.consumed_qty / r.planned_qty) * 100),
+                  ).toFixed(1)
+                : "—";
+            return `<tr>
+<td style="font-weight:600;">${r.material}</td>
+<td>${r.planned_qty.toFixed(2)}</td>
+<td>${r.ordered_qty.toFixed(2)}</td>
+<td>${r.consumed_qty.toFixed(2)}</td>
+<td>${r.remaining_stock.toFixed(2)}</td>
+<td class="${mwc}">${r.waste_pct >= 0 ? "+" : ""}${r.waste_pct.toFixed(2)}%</td>
+<td style="color:var(--sub);">${eff}${eff !== "—" ? "%" : ""}</td>
+<td style="color:var(--amber);">${r.new_buffer_pct.toFixed(2)}%</td>
+</tr>`;
+          })
+          .join("");
+
+        const chartId = `p5-usage-chart-${Date.now()}`;
+
+        document.getElementById("p5-output").innerHTML = `
+<div class="card" style="margin-top:1rem;">
+  <div class="banner b-ok" style="margin-bottom:1rem;">✓ Phase Closed — <strong>${phaseName}</strong> · ${results.length} material${results.length !== 1 ? "s" : ""}</div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.6rem;margin-bottom:1.2rem;">
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;">
+      <div style="font-size:.67rem;color:var(--sub);margin-bottom:.2rem;">📋 Total Planned</div>
+      <div style="font-size:1.2rem;font-weight:800;color:var(--accent);">${totPlanned.toFixed(2)}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;">
+      <div style="font-size:.67rem;color:var(--sub);margin-bottom:.2rem;">📦 Total Ordered</div>
+      <div style="font-size:1.2rem;font-weight:800;color:var(--green);">${totOrdered.toFixed(2)}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;">
+      <div style="font-size:.67rem;color:var(--sub);margin-bottom:.2rem;">🔨 Total Consumed</div>
+      <div style="font-size:1.2rem;font-weight:800;color:var(--amber);">${totConsumed.toFixed(2)}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;">
+      <div style="font-size:.67rem;color:var(--sub);margin-bottom:.2rem;">🏗 Total Remaining</div>
+      <div style="font-size:1.2rem;font-weight:800;color:var(--green);">${totRemaining.toFixed(2)}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.7rem .9rem;">
+      <div style="font-size:.67rem;color:var(--sub);margin-bottom:.2rem;">♻ Avg Waste</div>
+      <div style="font-size:1.2rem;font-weight:800;" class="${wc}">${overallWaste >= 0 ? "+" : ""}${overallWaste.toFixed(2)}%</div>
+    </div>
+  </div>
+
+  <div style="font-size:.78rem;font-weight:600;color:var(--sub);margin-bottom:.5rem;">Per-Material Breakdown</div>
+  <div class="tbl-wrap"><table style="width:100%;border-collapse:collapse;font-size:.79rem;">
+    <thead><tr style="color:var(--sub);font-size:.7rem;">
+      <th style="padding:.3rem .5rem;text-align:left;">Material</th>
+      <th style="padding:.3rem .5rem;">Planned</th>
+      <th style="padding:.3rem .5rem;">Ordered</th>
+      <th style="padding:.3rem .5rem;">Consumed</th>
+      <th style="padding:.3rem .5rem;">Remaining</th>
+      <th style="padding:.3rem .5rem;">Waste</th>
+      <th style="padding:.3rem .5rem;">Efficiency</th>
+      <th style="padding:.3rem .5rem;">New Buffer</th>
+    </tr></thead>
+    <tbody>${matRows}</tbody>
+  </table></div>
+</div>`;
+
+        document
+          .getElementById("p5-output")
+          .scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
       async function loadHistory() {
-        const mat = document.getElementById("p5-mat").value;
-        const m = matByName(mat);
+        const phase = document.getElementById("p5-phase-sel").value;
         const out = document.getElementById("p5-history");
-        if (!m || !m.history.length) {
-          out.innerHTML = `<div class="card"><div class="sub">No history for ${mat}.</div></div>`;
+
+        // Gather all materials that have history for this phase (or all if no phase)
+        const mats = phase
+          ? materials.filter((m) =>
+              m.history.some((h) => h.phase_name === phase),
+            )
+          : materials.filter((m) => m.history.length);
+
+        if (!mats.length) {
+          out.innerHTML = `<div class="card"><div class="sub">${phase ? `No history for phase "${phase}".` : "No phase history found."}</div></div>`;
           return;
         }
-        let totalOrd = 0,
-          totalCons = 0;
-        const rows = m.history
-          .map((h, i) => {
-            totalOrd += h.ordered_qty;
-            totalCons += h.consumed_qty;
+
+        const title = phase ? `${phase} — Full History` : "All Phase History";
+        let allRows = "";
+        let grandOrd = 0,
+          grandCons = 0;
+
+        for (const m of mats) {
+          const relevantHistory = phase
+            ? m.history.filter((h) => h.phase_name === phase)
+            : m.history;
+          if (!relevantHistory.length) continue;
+
+          relevantHistory.forEach((h, i) => {
+            grandOrd += h.ordered_qty;
+            grandCons += h.consumed_qty;
             const wc =
               Math.abs(h.waste_pct) < 5
                 ? "good"
                 : h.waste_pct > 0
                   ? "warn"
                   : "bad";
-            return `<tr>
-<td class="sub">${i + 1}</td>
-<td><strong>${h.phase_name}</strong></td>
+            allRows += `<tr>
+<td style="font-weight:600;">${m.name}</td>
+<td class="sub">${h.phase_name}</td>
 <td>${h.planned_qty.toFixed(3)}</td>
 <td>${h.ordered_qty.toFixed(3)}</td>
 <td>${h.consumed_qty.toFixed(3)}</td>
@@ -3061,24 +3367,22 @@
 <td class="${wc}">${h.waste_pct >= 0 ? "+" : ""}${h.waste_pct.toFixed(2)}%</td>
 <td class="sub">${(h.daily_usage || []).length}</td>
 </tr>`;
-          })
-          .join("");
+          });
+        }
+
         const ow =
-          totalOrd > 0
-            ? (((totalOrd - totalCons) / totalOrd) * 100).toFixed(2)
+          grandOrd > 0
+            ? (((grandOrd - grandCons) / grandOrd) * 100).toFixed(2)
             : 0;
         out.innerHTML = `
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;">
-    <div style="font-weight:700;">${m.name} — History</div>
-    <div class="sub">Buffer ${m.baseline_buffer_pct.toFixed(2)}% &rarr; ${m.buffer_pct.toFixed(2)}%</div>
-  </div>
+<div class="card" style="margin-top:1rem;">
+  <div style="font-weight:700;margin-bottom:.8rem;">${title}</div>
   <div class="tbl-wrap"><table>
-    <thead><tr><th>#</th><th>Phase</th><th>Planned</th><th>Ordered</th><th>Consumed</th><th>Remaining</th><th>Waste</th><th>Logs</th></tr></thead>
-    <tbody>${rows}</tbody>
+    <thead><tr><th>Material</th><th>Phase</th><th>Planned</th><th>Ordered</th><th>Consumed</th><th>Remaining</th><th>Waste</th><th>Logs</th></tr></thead>
+    <tbody>${allRows}</tbody>
     <tfoot><tr style="font-weight:700;border-top:2px solid var(--border);">
       <td colspan="2">Totals</td><td>—</td>
-      <td>${totalOrd.toFixed(3)}</td><td>${totalCons.toFixed(3)}</td><td>—</td>
+      <td>${grandOrd.toFixed(3)}</td><td>${grandCons.toFixed(3)}</td><td>—</td>
       <td class="${+ow >= 0 ? "warn" : "bad"}">${+ow >= 0 ? "+" : ""}${ow}%</td><td>—</td>
     </tr></tfoot>
   </table></div>
@@ -3923,6 +4227,9 @@
         if (!name) return toast("Enter a project name.", "warn");
         if (!_projGeoCoords)
           return toast("Search and select a site location.", "warn");
+        const startDate =
+          document.getElementById("proj-start-date").value || null;
+        const endDate = document.getElementById("proj-end-date").value || null;
         try {
           const p = await (
             await fetch(API + "/projects", {
@@ -3933,6 +4240,8 @@
                 dest_lat: _projGeoCoords.lat,
                 dest_lon: _projGeoCoords.lon,
                 dest_name: _projGeoCoords.name,
+                start_date: startDate,
+                end_date: endDate,
               }),
             })
           ).json();
@@ -3940,6 +4249,8 @@
           // Reset form
           document.getElementById("proj-name-input").value = "";
           document.getElementById("proj-geo-input").value = "";
+          document.getElementById("proj-start-date").value = "";
+          document.getElementById("proj-end-date").value = "";
           document.getElementById("proj-coords-display").style.display = "none";
           _projGeoCoords = null;
           toast(`Project '${p.name}' created.`, "ok");
@@ -4810,6 +5121,560 @@ ${
           rejectBtn.disabled = false;
         }
       }
+
+      // ─── Analytics ──────────────────────────────────────────────────
+      const _analyticsCharts = {};
+
+      function _destroyChart(id) {
+        if (_analyticsCharts[id]) {
+          _analyticsCharts[id].destroy();
+          delete _analyticsCharts[id];
+        }
+      }
+
+      async function loadAnalytics() {
+        if (!activeProject) return;
+
+        // ── Project timeline header ──────────────────────────────────
+        const proj = activeProject;
+        const startD = proj.start_date ? new Date(proj.start_date) : null;
+        const endD = proj.end_date ? new Date(proj.end_date) : null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let subText = `Site: ${proj.dest_name}`;
+        if (startD && endD) {
+          const totalDays = Math.round((endD - startD) / 86400000);
+          const elapsed = Math.max(0, Math.round((today - startD) / 86400000));
+          const remaining = Math.max(0, Math.round((endD - today) / 86400000));
+          subText += ` · ${elapsed} of ${totalDays} days elapsed · ${remaining} days to deadline`;
+        }
+        document.getElementById("analytics-subtitle").textContent = subText;
+
+        // ── Fetch materials ──────────────────────────────────────────
+        let mats = [];
+        try {
+          mats = await api("GET", "/materials");
+        } catch (_) {}
+        if (!mats.length) {
+          document.getElementById("analytics-kpis").innerHTML =
+            `<div class="sub" style="grid-column:1/-1;text-align:center;padding:1rem;">No materials found.</div>`;
+          document.getElementById("analytics-insights").innerHTML =
+            `<div class="sub" style="text-align:center;padding:1rem;">Add materials and log usage to see insights.</div>`;
+          return;
+        }
+
+        // ── Compute aggregates across all materials ──────────────────
+        let totalPlanned = 0,
+          totalConsumed = 0,
+          totalOrdered = 0,
+          totalRemaining = 0;
+        let totalWaste = 0,
+          wasteCount = 0;
+        const burnSeries = {}; // date → total consumed that day
+
+        for (const m of mats) {
+          const ph = m.history?.at(-1);
+          if (!ph) continue;
+          totalPlanned += ph.planned_qty || 0;
+          totalConsumed += ph.consumed_qty || 0;
+          totalOrdered += ph.ordered_qty || 0;
+          totalRemaining += ph.remaining_stock || 0;
+
+          // Waste: accumulate from all closed phases
+          for (const h of m.history || []) {
+            if (h.waste_pct != null && h.waste_pct !== 0) {
+              totalWaste += Math.abs(h.waste_pct);
+              wasteCount++;
+            }
+          }
+
+          // Daily burn from last 14 days across all phases
+          for (const h of m.history || []) {
+            for (const e of h.daily_usage || []) {
+              burnSeries[e.date] =
+                (burnSeries[e.date] || 0) + (e.quantity || 0);
+            }
+          }
+        }
+
+        // Build last-14-day burn array
+        const burnDates = [];
+        const burnVals = [];
+        for (let i = 13; i >= 0; i--) {
+          const d = new Date(today);
+          d.setDate(d.getDate() - i);
+          const key = d.toISOString().slice(0, 10);
+          burnDates.push(key.slice(5)); // MM-DD
+          burnVals.push(+(burnSeries[key] || 0).toFixed(2));
+        }
+        const avgBurn = burnVals.filter((v) => v > 0).length
+          ? (
+              burnVals.reduce((a, b) => a + b, 0) /
+              burnVals.filter((v) => v > 0).length
+            ).toFixed(2)
+          : 0;
+
+        // Waste: only from closed phases (waste_pct != 0, meaning phase was completed via API)
+        const wasteClosedNames = [];
+        const wasteClosedVals = [];
+        for (const m of mats) {
+          for (const h of m.history || []) {
+            if (h.waste_pct !== 0 && h.waste_pct != null) {
+              wasteClosedNames.push(`${m.name}\n${h.phase_name}`);
+              wasteClosedVals.push(+h.waste_pct.toFixed(2));
+            }
+          }
+        }
+
+        // ── KPI cards ───────────────────────────────────────────────
+        const kpiData = [
+          {
+            label: "Total Planned",
+            value: totalPlanned.toFixed(1),
+            icon: "📋",
+            color: "var(--accent)",
+          },
+          {
+            label: "Total Consumed",
+            value: totalConsumed.toFixed(1),
+            icon: "🔨",
+            color: "var(--amber)",
+          },
+          {
+            label: "Total Ordered",
+            value: totalOrdered.toFixed(1),
+            icon: "📦",
+            color: "var(--green)",
+          },
+          {
+            label: "In Stock",
+            value: totalRemaining.toFixed(1),
+            icon: "🏗",
+            color:
+              totalRemaining < totalPlanned * 0.2
+                ? "var(--red)"
+                : "var(--green)",
+          },
+          {
+            label: "Avg Daily Burn",
+            value: avgBurn,
+            icon: "📈",
+            color: "var(--text)",
+          },
+          {
+            label: "Avg Waste",
+            value: wasteCount
+              ? (totalWaste / wasteCount).toFixed(1) + "%"
+              : "—",
+            icon: "♻",
+            color: "var(--sub)",
+          },
+        ];
+        if (startD && endD) {
+          const remaining = Math.max(0, Math.round((endD - today) / 86400000));
+          kpiData.push({
+            label: "Days to Deadline",
+            value: remaining,
+            icon: "⏱",
+            color:
+              remaining < 14
+                ? "var(--red)"
+                : remaining < 30
+                  ? "var(--amber)"
+                  : "var(--green)",
+          });
+          if (avgBurn > 0 && totalRemaining > 0) {
+            const daysLeft = (totalRemaining / avgBurn).toFixed(0);
+            kpiData.push({
+              label: "Est. Days of Stock",
+              value: daysLeft,
+              icon: "📅",
+              color: +daysLeft < remaining ? "var(--red)" : "var(--green)",
+            });
+          }
+        }
+
+        document.getElementById("analytics-kpis").innerHTML = kpiData
+          .map(
+            (k) => `
+<div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.8rem 1rem;">
+  <div style="font-size:.67rem;color:var(--sub);margin-bottom:.25rem;">${k.icon} ${k.label}</div>
+  <div style="font-size:1.4rem;font-weight:800;color:${k.color};">${k.value}</div>
+</div>`,
+          )
+          .join("");
+
+        // ── Chart: Daily burn rate ───────────────────────────────────
+        _destroyChart("burn");
+        const ctxBurn = document.getElementById("chart-burn").getContext("2d");
+        _analyticsCharts["burn"] = new Chart(ctxBurn, {
+          type: "bar",
+          data: {
+            labels: burnDates,
+            datasets: [
+              {
+                label: "Total used",
+                data: burnVals,
+                backgroundColor: "rgba(99,179,237,.55)",
+                borderColor: "#63b3ed",
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: {
+                ticks: { color: "#8a9bb5", font: { size: 10 } },
+                grid: { color: "rgba(255,255,255,.05)" },
+              },
+              y: {
+                ticks: { color: "#8a9bb5", font: { size: 10 } },
+                grid: { color: "rgba(255,255,255,.05)" },
+              },
+            },
+          },
+        });
+
+        // ── Chart: Waste — only from closed phases ────────────────────
+        _destroyChart("waste");
+        const ctxWaste = document
+          .getElementById("chart-waste")
+          .getContext("2d");
+        if (wasteClosedVals.length === 0) {
+          ctxWaste.canvas.parentElement.innerHTML = `<div class="sub" style="text-align:center;padding:3rem 1rem;font-size:.8rem;">No closed phases yet.<br>Waste is calculated when you close a phase.</div>`;
+        } else {
+          _analyticsCharts["waste"] = new Chart(ctxWaste, {
+            type: "bar",
+            data: {
+              labels: wasteClosedNames,
+              datasets: [
+                {
+                  label: "Waste %",
+                  data: wasteClosedVals,
+                  backgroundColor: wasteClosedVals.map((v) =>
+                    v < 0
+                      ? "rgba(239,68,68,.7)"
+                      : v > 10
+                        ? "rgba(252,129,74,.7)"
+                        : "rgba(72,187,120,.55)",
+                  ),
+                  borderRadius: 4,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) =>
+                      `${ctx.raw >= 0 ? "+" : ""}${ctx.raw}%  ${ctx.raw > 0 ? "(over-ordered)" : "(under-ordered)"}`,
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  ticks: { color: "#8a9bb5", font: { size: 9 } },
+                  grid: { color: "rgba(255,255,255,.05)" },
+                },
+                y: {
+                  ticks: {
+                    color: "#8a9bb5",
+                    font: { size: 10 },
+                    callback: (v) => v + "%",
+                  },
+                  grid: { color: "rgba(255,255,255,.05)" },
+                },
+              },
+            },
+          });
+        }
+
+        // ── Per-material usage cards (Planned / Ordered / Consumed) ──
+        // Destroy old per-material charts
+        Object.keys(_analyticsCharts)
+          .filter((k) => k.startsWith("mat-"))
+          .forEach((k) => {
+            _destroyChart(k);
+          });
+        const matChartsEl = document.getElementById("analytics-mat-charts");
+        if (!mats.length) {
+          matChartsEl.innerHTML = "";
+        } else {
+          matChartsEl.innerHTML = mats
+            .map((m, idx) => {
+              const ph = m.history?.at(-1);
+              const planned = ph ? +(ph.planned_qty || 0).toFixed(2) : 0;
+              const ordered = ph ? +(ph.ordered_qty || 0).toFixed(2) : 0;
+              const consumed = ph ? +(ph.consumed_qty || 0).toFixed(2) : 0;
+              const remaining = ph ? +(ph.remaining_stock || 0).toFixed(2) : 0;
+              const phaseName = ph ? ph.phase_name : "—";
+              return `
+<div class="card" style="margin:0;padding:1rem 1.2rem;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;">
+    <div>
+      <span style="font-weight:700;font-size:.95rem;">${m.name}</span>
+      <span class="sub" style="font-size:.72rem;margin-left:.45rem;">${m.unit} · ${phaseName}</span>
+    </div>
+    <div style="display:flex;gap:1.4rem;font-size:.78rem;">
+      <span style="color:var(--accent)">📋 ${planned} <span class="sub" style="font-size:.68rem;">planned</span></span>
+      <span style="color:var(--green)">📦 ${ordered} <span class="sub" style="font-size:.68rem;">ordered</span></span>
+      <span style="color:var(--amber)">🔨 ${consumed} <span class="sub" style="font-size:.68rem;">consumed</span></span>
+      <span style="color:var(--sub)">🏗 ${remaining} <span class="sub" style="font-size:.68rem;">in stock</span></span>
+    </div>
+  </div>
+  <div style="position:relative;height:90px;">
+    <canvas id="chart-mat-${idx}"></canvas>
+  </div>
+</div>`;
+            })
+            .join("");
+
+          // Draw per-material horizontal bullet-style bar chart
+          mats.forEach((m, idx) => {
+            const ph = m.history?.at(-1);
+            if (!ph) return;
+            const planned = +(ph.planned_qty || 0).toFixed(2);
+            const ordered = +(ph.ordered_qty || 0).toFixed(2);
+            const consumed = +(ph.consumed_qty || 0).toFixed(2);
+            const canvasEl = document.getElementById(`chart-mat-${idx}`);
+            if (!canvasEl) return;
+            const ctx = canvasEl.getContext("2d");
+            // Horizontal bar with annotation-style reference line for planned
+            _analyticsCharts[`mat-${idx}`] = new Chart(ctx, {
+              type: "bar",
+              data: {
+                labels: [""],
+                datasets: [
+                  {
+                    label: "Consumed",
+                    data: [consumed],
+                    backgroundColor: "rgba(246,173,85,.75)",
+                    borderRadius: 4,
+                    barThickness: 22,
+                  },
+                  {
+                    label: "Ordered",
+                    data: [ordered],
+                    backgroundColor: "rgba(72,187,120,.35)",
+                    borderRadius: 4,
+                    barThickness: 22,
+                  },
+                ],
+              },
+              options: {
+                indexAxis: "y",
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    labels: {
+                      color: "#8a9bb5",
+                      font: { size: 10 },
+                      boxWidth: 12,
+                      padding: 10,
+                    },
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (ctx) =>
+                        ` ${ctx.dataset.label}: ${ctx.raw} ${m.unit}`,
+                    },
+                  },
+                  // Draw a "Planned" reference line using afterDraw
+                },
+                scales: {
+                  x: {
+                    min: 0,
+                    suggestedMax:
+                      Math.max(planned, ordered, consumed) * 1.1 || 10,
+                    ticks: { color: "#8a9bb5", font: { size: 9 } },
+                    grid: { color: "rgba(255,255,255,.05)" },
+                  },
+                  y: {
+                    ticks: { color: "#8a9bb5", font: { size: 10 } },
+                    grid: { display: false },
+                  },
+                },
+              },
+              plugins: [
+                {
+                  id: `planned-line-${idx}`,
+                  afterDraw(chart) {
+                    if (!planned) return;
+                    const {
+                      ctx: c,
+                      scales: { x, y },
+                    } = chart;
+                    const xPx = x.getPixelForValue(planned);
+                    const yTop = y.top;
+                    const yBottom = y.bottom;
+                    c.save();
+                    c.beginPath();
+                    c.moveTo(xPx, yTop - 4);
+                    c.lineTo(xPx, yBottom + 4);
+                    c.strokeStyle = "rgba(99,179,237,.9)";
+                    c.lineWidth = 2;
+                    c.setLineDash([4, 3]);
+                    c.stroke();
+                    c.setLineDash([]);
+                    c.fillStyle = "#63b3ed";
+                    c.font = "bold 10px sans-serif";
+                    c.textAlign = "center";
+                    c.fillText(`Req: ${planned}`, xPx, yTop - 7);
+                    c.restore();
+                  },
+                },
+              ],
+            });
+          });
+        }
+
+        // ── Smart insights ───────────────────────────────────────────
+        const insights = [];
+
+        // 1. Deadline pressure
+        if (startD && endD) {
+          const remaining = Math.max(0, Math.round((endD - today) / 86400000));
+          const totalDays = Math.round((endD - startD) / 86400000);
+          const elapsed = Math.max(0, Math.round((today - startD) / 86400000));
+          const pct =
+            totalDays > 0 ? Math.round((elapsed / totalDays) * 100) : 0;
+          if (remaining === 0) {
+            insights.push({
+              type: "err",
+              text: "⚠️ Project deadline has passed. Review deliverables.",
+            });
+          } else if (remaining < 7) {
+            insights.push({
+              type: "err",
+              text: `⚠️ Only ${remaining} day${remaining === 1 ? "" : "s"} to deadline (${pct}% of project elapsed). Expedite critical orders.`,
+            });
+          } else if (remaining < 21) {
+            insights.push({
+              type: "warn",
+              text: `⏱ ${remaining} days remaining to deadline — ${pct}% of project timeline elapsed.`,
+            });
+          } else {
+            insights.push({
+              type: "ok",
+              text: `✓ ${remaining} days to deadline. ${pct}% of timeline elapsed.`,
+            });
+          }
+
+          // Stock runway vs deadline
+          if (+avgBurn > 0 && totalRemaining > 0) {
+            const stockDays = Math.round(totalRemaining / avgBurn);
+            if (stockDays < remaining) {
+              insights.push({
+                type: "err",
+                text: `📉 At current burn rate, combined stock will run out in ~${stockDays} days — ${remaining - stockDays} days short of deadline. Reorder soon.`,
+              });
+            } else {
+              insights.push({
+                type: "ok",
+                text: `✓ Combined stock runway (~${stockDays} days) covers the remaining deadline (${remaining} days).`,
+              });
+            }
+          }
+        }
+
+        // 2. Per-material burn vs stock
+        for (const m of mats) {
+          const ph = m.history?.at(-1);
+          if (!ph) continue;
+          const usage = [];
+          for (const h of m.history || [])
+            for (const e of h.daily_usage || []) usage.push(e.quantity || 0);
+          if (usage.length < 2) continue;
+          const recentUsage = usage.slice(-7);
+          const dailyRate =
+            recentUsage.reduce((a, b) => a + b, 0) / recentUsage.length;
+          if (dailyRate <= 0) continue;
+          const daysStock = ph.remaining_stock / dailyRate;
+          if (daysStock < 3) {
+            insights.push({
+              type: "err",
+              text: `🚨 ${m.name}: Only ~${daysStock.toFixed(1)} days of stock left at current burn rate (${dailyRate.toFixed(1)} ${m.unit}/day). Critical reorder needed.`,
+            });
+          } else if (daysStock < 7) {
+            insights.push({
+              type: "warn",
+              text: `⚠️ ${m.name}: ~${daysStock.toFixed(1)} days of stock remaining. Consider reordering.`,
+            });
+          }
+        }
+
+        // 3. Waste alerts
+        for (const m of mats) {
+          const ph = m.history?.at(-1);
+          if (!ph || ph.waste_pct == null) continue;
+          if (ph.waste_pct > 10) {
+            insights.push({
+              type: "warn",
+              text: `♻ ${m.name}: High waste of ${ph.waste_pct.toFixed(1)}% in latest phase. Buffer will auto-adjust upward.`,
+            });
+          } else if (ph.waste_pct < -5) {
+            insights.push({
+              type: "warn",
+              text: `📊 ${m.name}: Under-ordered by ${Math.abs(ph.waste_pct).toFixed(1)}% last phase — buffer will increase to compensate.`,
+            });
+          }
+        }
+
+        // 4. Phases with no usage logged
+        for (const m of mats) {
+          const ph = m.history?.at(-1);
+          if (!ph) continue;
+          if (
+            ph.ordered_qty > 0 &&
+            (!ph.daily_usage || ph.daily_usage.length === 0)
+          ) {
+            insights.push({
+              type: "warn",
+              text: `📋 ${m.name}: Material ordered but no daily usage logged yet in "${ph.phase_name}".`,
+            });
+          }
+        }
+
+        // 5. Materials with no phase set up
+        const noPhase = mats.filter(
+          (m) => !m.history || m.history.length === 0,
+        );
+        if (noPhase.length) {
+          insights.push({
+            type: "warn",
+            text: `ℹ ${noPhase.map((m) => m.name).join(", ")}: No phases set up. Go to Phase Setup to define planned quantities.`,
+          });
+        }
+
+        if (!insights.length) {
+          insights.push({
+            type: "ok",
+            text: "✓ All materials look healthy. Keep logging daily usage for better predictions.",
+          });
+        }
+
+        const colMap = {
+          ok: "var(--green)",
+          warn: "var(--amber)",
+          err: "var(--red)",
+        };
+        document.getElementById("analytics-insights").innerHTML = insights
+          .map(
+            (ins) => `
+<div style="display:flex;gap:.65rem;align-items:flex-start;padding:.6rem .75rem;border-radius:8px;background:rgba(255,255,255,.03);margin-bottom:.45rem;border-left:3px solid ${colMap[ins.type]};">
+  <div style="font-size:.82rem;line-height:1.5;color:var(--text);">${ins.text}</div>
+</div>`,
+          )
+          .join("");
+      }
+      // ─── End Analytics ───────────────────────────────────────────────
 
       window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("p3-date").valueAsDate = new Date();

@@ -3,7 +3,7 @@
     "name": "Cement",
     "unit": "bags",
     "baseline_buffer_pct": 6.0,
-    "buffer_pct": 6.0,
+    "buffer_pct": 41.3102,
     "weight_per_unit": 50.0,
     "priority": 9,
     "history": [
@@ -28,6 +28,29 @@
             "quantity": 5.0
           }
         ]
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 424.0,
+        "consumed_qty": 105.0,
+        "waste_pct": 75.2358,
+        "remaining_stock": 319.0,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 424.0,
+        "consumed_qty": 100.0,
+        "waste_pct": 75.2358,
+        "remaining_stock": 324.0,
+        "daily_usage": [
+          {
+            "date": "2026-02-21",
+            "quantity": 100.0
+          }
+        ]
       }
     ]
   },
@@ -42,6 +65,15 @@
       {
         "phase_name": "F1",
         "planned_qty": 300.0,
+        "ordered_qty": 0.0,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 0.0,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "F2",
+        "planned_qty": 21.0,
         "ordered_qty": 0.0,
         "consumed_qty": 0.0,
         "waste_pct": 0.0,
