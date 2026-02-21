@@ -1,0 +1,469 @@
+[
+  {
+    "timestamp": "2026-02-21T05:12:06.779756Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 385.84,
+    "days_remaining": 2.1,
+    "stockout_date": "2026-02-23",
+    "ema_rate": 26.0,
+    "critical": true,
+    "id": 5,
+    "status": "rejected",
+    "rejected_at": "2026-02-21T05:16:48.792580Z"
+  },
+  {
+    "timestamp": "2026-02-21T04:53:06.905095Z",
+    "source": "manual-order",
+    "material": "Brick",
+    "unit": "pcs",
+    "planned_qty": 50.0,
+    "reorder_qty": 55.0,
+    "buffer_pct": 10.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "id": 4,
+    "status": "arrived",
+    "approved_at": "2026-02-21T04:53:20.235687Z",
+    "supply_plan": {
+      "destination": {
+        "name": "Bengaluru",
+        "lat": 12.9767936,
+        "lon": 77.590082
+      },
+      "requirements": [
+        {
+          "material": "Brick",
+          "qty": 55.0,
+          "unit_weight": 3.0
+        }
+      ],
+      "shortfalls": [],
+      "picks": [
+        {
+          "store_id": "S02",
+          "store_name": "Whitefield Building Supplies",
+          "lat": 12.9698,
+          "lon": 77.75,
+          "material": "Brick",
+          "qty_units": 55.0,
+          "weight_kg": 165.0,
+          "dist_to_dest_km": 17.3
+        }
+      ],
+      "depot_plans": [
+        {
+          "depot": {
+            "id": "DEP-BLR",
+            "name": "Bangalore Central Depot",
+            "lat": 12.9716,
+            "lon": 77.5946
+          },
+          "assignments": [
+            {
+              "truck_id": "BLR-T1",
+              "capacity_kg": 16000,
+              "load_kg": 165.0,
+              "util_pct": 1.0,
+              "route": [
+                {
+                  "name": "Bangalore Central Depot",
+                  "lat": 12.9716,
+                  "lon": 77.5946
+                },
+                {
+                  "name": "Whitefield Building Supplies",
+                  "lat": 12.9698,
+                  "lon": 77.75
+                },
+                {
+                  "name": "Bengaluru",
+                  "lat": 12.9767936,
+                  "lon": 77.590082
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S02",
+                  "store_name": "Whitefield Building Supplies",
+                  "lat": 12.9698,
+                  "lon": 77.75,
+                  "materials": [
+                    {
+                      "material": "Brick",
+                      "qty": 55.0,
+                      "weight_kg": 165.0
+                    }
+                  ],
+                  "weight_kg": 165.0
+                }
+              ],
+              "distance_km": 51.03,
+              "co2_kg": 593.8
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_trucks": 1,
+        "total_kg": 165.0,
+        "total_km": 51.03,
+        "total_co2_kg": 593.8,
+        "depots_used": 1,
+        "stores_sourced": 1,
+        "shortfalls": 0
+      }
+    },
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "arrived_at": "2026-02-21T04:53:37.958230Z",
+    "added_to_phase": "F1",
+    "qty_added": 55.0
+  },
+  {
+    "timestamp": "2026-02-21T04:53:06.905095Z",
+    "source": "manual-order",
+    "material": "Cement",
+    "unit": "bags",
+    "planned_qty": 100.0,
+    "reorder_qty": 106.0,
+    "buffer_pct": 6.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "id": 3,
+    "status": "arrived",
+    "approved_at": "2026-02-21T04:53:46.495993Z",
+    "supply_plan": {
+      "destination": {
+        "name": "Bengaluru",
+        "lat": 12.9767936,
+        "lon": 77.590082
+      },
+      "requirements": [
+        {
+          "material": "Cement",
+          "qty": 106.0,
+          "unit_weight": 50.0
+        }
+      ],
+      "shortfalls": [],
+      "picks": [
+        {
+          "store_id": "S01",
+          "store_name": "Bangalore East Cement Works",
+          "lat": 12.99,
+          "lon": 77.68,
+          "material": "Cement",
+          "qty_units": 106.0,
+          "weight_kg": 5300.0,
+          "dist_to_dest_km": 9.9
+        }
+      ],
+      "depot_plans": [
+        {
+          "depot": {
+            "id": "DEP-BLR",
+            "name": "Bangalore Central Depot",
+            "lat": 12.9716,
+            "lon": 77.5946
+          },
+          "assignments": [
+            {
+              "truck_id": "BLR-T1",
+              "capacity_kg": 16000,
+              "load_kg": 5300.0,
+              "util_pct": 33.1,
+              "route": [
+                {
+                  "name": "Bangalore Central Depot",
+                  "lat": 12.9716,
+                  "lon": 77.5946
+                },
+                {
+                  "name": "Bangalore East Cement Works",
+                  "lat": 12.99,
+                  "lon": 77.68
+                },
+                {
+                  "name": "Bengaluru",
+                  "lat": 12.9767936,
+                  "lon": 77.590082
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S01",
+                  "store_name": "Bangalore East Cement Works",
+                  "lat": 12.99,
+                  "lon": 77.68,
+                  "materials": [
+                    {
+                      "material": "Cement",
+                      "qty": 106.0,
+                      "weight_kg": 5300.0
+                    }
+                  ],
+                  "weight_kg": 5300.0
+                }
+              ],
+              "distance_km": 28.81,
+              "co2_kg": 10.44
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_trucks": 1,
+        "total_kg": 5300.0,
+        "total_km": 28.81,
+        "total_co2_kg": 10.44,
+        "depots_used": 1,
+        "stores_sourced": 1,
+        "shortfalls": 0
+      }
+    },
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "arrived_at": "2026-02-21T04:53:50.900954Z",
+    "added_to_phase": "F1",
+    "qty_added": 106.0
+  },
+  {
+    "timestamp": "2026-02-21T04:50:20.331515Z",
+    "source": "manual-order",
+    "material": "Sand",
+    "unit": "tons",
+    "planned_qty": 100.0,
+    "reorder_qty": 108.0,
+    "buffer_pct": 8.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "id": 2,
+    "status": "approved",
+    "approved_at": "2026-02-21T04:50:40.252695Z",
+    "supply_plan": {
+      "destination": {
+        "name": "Bengaluru",
+        "lat": 12.9767936,
+        "lon": 77.590082
+      },
+      "requirements": [
+        {
+          "material": "Sand",
+          "qty": 108.0,
+          "unit_weight": 1000.0
+        }
+      ],
+      "shortfalls": [],
+      "picks": [
+        {
+          "store_id": "S01",
+          "store_name": "Bangalore East Cement Works",
+          "lat": 12.99,
+          "lon": 77.68,
+          "material": "Sand",
+          "qty_units": 108.0,
+          "weight_kg": 108000.0,
+          "dist_to_dest_km": 9.9
+        }
+      ],
+      "depot_plans": [
+        {
+          "depot": {
+            "id": "DEP-BLR",
+            "name": "Bangalore Central Depot",
+            "lat": 12.9716,
+            "lon": 77.5946
+          },
+          "assignments": [
+            {
+              "truck_id": "BLR-T1",
+              "capacity_kg": 16000,
+              "load_kg": 108000.0,
+              "util_pct": 675.0,
+              "route": [
+                {
+                  "name": "Bangalore Central Depot",
+                  "lat": 12.9716,
+                  "lon": 77.5946
+                },
+                {
+                  "name": "Bangalore East Cement Works",
+                  "lat": 12.99,
+                  "lon": 77.68
+                },
+                {
+                  "name": "Bengaluru",
+                  "lat": 12.9767936,
+                  "lon": 77.590082
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S01",
+                  "store_name": "Bangalore East Cement Works",
+                  "lat": 12.99,
+                  "lon": 77.68,
+                  "materials": [
+                    {
+                      "material": "Sand",
+                      "qty": 108.0,
+                      "weight_kg": 108000.0
+                    }
+                  ],
+                  "weight_kg": 108000.0
+                }
+              ],
+              "distance_km": 28.81,
+              "co2_kg": 0.51
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_trucks": 1,
+        "total_kg": 108000.0,
+        "total_km": 28.81,
+        "total_co2_kg": 0.51,
+        "depots_used": 1,
+        "stores_sourced": 1,
+        "shortfalls": 0
+      }
+    },
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null
+  },
+  {
+    "timestamp": "2026-02-21T04:50:20.331515Z",
+    "source": "manual-order",
+    "material": "Brick",
+    "unit": "pcs",
+    "planned_qty": 100.0,
+    "reorder_qty": 110.0,
+    "buffer_pct": 10.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "id": 1,
+    "status": "arrived",
+    "approved_at": "2026-02-21T04:50:48.914521Z",
+    "supply_plan": {
+      "destination": {
+        "name": "Bengaluru",
+        "lat": 12.9767936,
+        "lon": 77.590082
+      },
+      "requirements": [
+        {
+          "material": "Brick",
+          "qty": 110.0,
+          "unit_weight": 3.0
+        }
+      ],
+      "shortfalls": [],
+      "picks": [
+        {
+          "store_id": "S02",
+          "store_name": "Whitefield Building Supplies",
+          "lat": 12.9698,
+          "lon": 77.75,
+          "material": "Brick",
+          "qty_units": 110.0,
+          "weight_kg": 330.0,
+          "dist_to_dest_km": 17.3
+        }
+      ],
+      "depot_plans": [
+        {
+          "depot": {
+            "id": "DEP-BLR",
+            "name": "Bangalore Central Depot",
+            "lat": 12.9716,
+            "lon": 77.5946
+          },
+          "assignments": [
+            {
+              "truck_id": "BLR-T1",
+              "capacity_kg": 16000,
+              "load_kg": 330.0,
+              "util_pct": 2.1,
+              "route": [
+                {
+                  "name": "Bangalore Central Depot",
+                  "lat": 12.9716,
+                  "lon": 77.5946
+                },
+                {
+                  "name": "Whitefield Building Supplies",
+                  "lat": 12.9698,
+                  "lon": 77.75
+                },
+                {
+                  "name": "Bengaluru",
+                  "lat": 12.9767936,
+                  "lon": 77.590082
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S02",
+                  "store_name": "Whitefield Building Supplies",
+                  "lat": 12.9698,
+                  "lon": 77.75,
+                  "materials": [
+                    {
+                      "material": "Brick",
+                      "qty": 110.0,
+                      "weight_kg": 330.0
+                    }
+                  ],
+                  "weight_kg": 330.0
+                }
+              ],
+              "distance_km": 51.03,
+              "co2_kg": 296.9
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_trucks": 1,
+        "total_kg": 330.0,
+        "total_km": 51.03,
+        "total_co2_kg": 296.9,
+        "depots_used": 1,
+        "stores_sourced": 1,
+        "shortfalls": 0
+      }
+    },
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "arrived_at": "2026-02-21T04:50:56.997905Z",
+    "added_to_phase": "F1",
+    "qty_added": 110.0
+  }
+]

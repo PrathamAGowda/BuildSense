@@ -1,0 +1,97 @@
+[
+  {
+    "timestamp": "2026-02-21T05:12:06.779756Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 385.84,
+    "days_remaining": 2.1,
+    "stockout_date": "2026-02-23",
+    "ema_rate": 26.0,
+    "critical": true,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "triggered",
+    "id": 5
+  },
+  {
+    "timestamp": "2026-02-21T04:53:46.495993Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 106.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 4
+  },
+  {
+    "timestamp": "2026-02-21T04:53:20.235687Z",
+    "source": "approved",
+    "material": "Brick",
+    "unit": "pcs",
+    "reorder_qty": 55.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 3
+  },
+  {
+    "timestamp": "2026-02-21T04:50:48.914521Z",
+    "source": "approved",
+    "material": "Brick",
+    "unit": "pcs",
+    "reorder_qty": 110.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 2
+  },
+  {
+    "timestamp": "2026-02-21T04:50:40.252695Z",
+    "source": "approved",
+    "material": "Sand",
+    "unit": "tons",
+    "reorder_qty": 108.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 1
+  }
+]

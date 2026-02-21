@@ -78,9 +78,16 @@ def _ema_daily_rate(phase: PhaseRecord, alpha: float = EMA_ALPHA) -> Optional[fl
 #  Stockout prediction                                                 #
 # ─────────────────────────────────────────────────────────────────── #
 
-def predict_stockout(phase: PhaseRecord) -> dict:
+def predict_stockout(phase: PhaseRecord, on_order_qty: float = 0.0) -> dict:
     """
     Given the current phase, predict how many days until stock runs out.
+
+    Parameters
+    ----------
+    phase        : The current PhaseRecord.
+    on_order_qty : Quantity already ordered (pending/approved reorders) that
+                   has not yet arrived but is guaranteed — added to remaining
+                   stock so we don't re-alert when an order is in flight.
 
     Returns
     -------
@@ -88,12 +95,15 @@ def predict_stockout(phase: PhaseRecord) -> dict:
       "ema_rate":          float | None   — EMA-smoothed daily consumption
       "days_remaining":    float | None   — estimated days until stockout
       "stockout_date":     str   | None   — ISO date of predicted stockout
-      "remaining_stock":   float
+      "remaining_stock":   float          — physical stock only
+      "effective_stock":   float          — remaining + on_order_qty
+      "on_order_qty":      float
       "insufficient_data": bool
     }
     """
     rate = _ema_daily_rate(phase)
     remaining = phase.remaining_stock
+    effective = remaining + on_order_qty
 
     if rate is None or rate <= 0:
         return {
@@ -101,10 +111,12 @@ def predict_stockout(phase: PhaseRecord) -> dict:
             "days_remaining":    None,
             "stockout_date":     None,
             "remaining_stock":   remaining,
+            "effective_stock":   effective,
+            "on_order_qty":      on_order_qty,
             "insufficient_data": True,
         }
 
-    days_left   = remaining / rate
+    days_left   = effective / rate          # use effective (stock + on-order)
     stockout_dt = date.today() + timedelta(days=days_left)
 
     return {
@@ -112,6 +124,8 @@ def predict_stockout(phase: PhaseRecord) -> dict:
         "days_remaining":    round(days_left, 1),
         "stockout_date":     stockout_dt.isoformat(),
         "remaining_stock":   remaining,
+        "effective_stock":   round(effective, 4),
+        "on_order_qty":      on_order_qty,
         "insufficient_data": False,
     }
 
@@ -128,6 +142,7 @@ def check_auto_reorder(
     dest_lon: Optional[float] = None,
     dest_name: str = "Construction Site",
     horizon_days: int = REORDER_HORIZON,
+    on_order_qty: float = 0.0,
 ) -> dict:
     """
     Core auto-reorder decision logic.
@@ -139,6 +154,10 @@ def check_auto_reorder(
     dest_lat/lon : Site GPS — used to source materials from supply network.
                    If None, supply routing is skipped (alert only mode).
     horizon_days : Number of days ahead to check; default REORDER_HORIZON.
+    on_order_qty : Sum of quantities already ordered (pending + approved
+                   reorders still in flight). Added to remaining stock when
+                   computing days_remaining — prevents duplicate alerts when
+                   a reorder has already been placed.
 
     Returns
     -------
@@ -157,7 +176,7 @@ def check_auto_reorder(
         return {"triggered": False, "reason": "Invalid phase index."}
 
     phase      = material.history[phase_index]
-    prediction = predict_stockout(phase)
+    prediction = predict_stockout(phase, on_order_qty=on_order_qty)
 
     # Can't make a decision without enough data
     if prediction["insufficient_data"]:
@@ -177,10 +196,11 @@ def check_auto_reorder(
     critical  = days_left is not None and days_left <= CRITICAL_HORIZON
 
     if not triggered:
+        suffix = f" (includes {on_order_qty:.2f} {material.unit} on order)" if on_order_qty > 0 else ""
         return {
             "triggered":   False,
             "critical":    False,
-            "reason":      f"Stock sufficient — {days_left:.1f} days remaining (threshold: {horizon_days} days).",
+            "reason":      f"Stock sufficient — {days_left:.1f} days remaining (threshold: {horizon_days} days){suffix}.",
             "prediction":  prediction,
             "reorder_qty": 0.0,
             "supply_plan": None,
@@ -189,11 +209,16 @@ def check_auto_reorder(
         }
 
     # ── Compute reorder quantity ─────────────────────────────────── #
-    # Use the phase's planned_qty as the baseline and apply adaptive buffer.
-    # This mirrors Phase 2 smart ordering — proven quantity + learned buffer.
+    # Cap at what the phase actually still needs: planned - already ordered/consumed.
     ema_rate      = prediction["ema_rate"]
     days_to_cover = max(horizon_days * 2, 14)   # order enough for 2× horizon
     raw_reorder   = ema_rate * days_to_cover     # units needed to cover window
+
+    # Phase-aware cap: don't order more than what the phase plan requires
+    phase_still_needs = max(0.0, phase.planned_qty - phase.ordered_qty - phase.consumed_qty)
+    if phase_still_needs > 0:
+        raw_reorder = min(raw_reorder, phase_still_needs)
+
     buffered_qty  = round(raw_reorder * (1 + material.buffer_pct / 100), 2)
 
     reason_parts = [
@@ -246,18 +271,29 @@ def check_all_materials(
     dest_lon: Optional[float] = None,
     dest_name: str = "Construction Site",
     horizon_days: int = REORDER_HORIZON,
+    on_order_map: Optional[Dict[str, float]] = None,
 ) -> List[dict]:
     """
     Run auto-reorder check across ALL materials (latest phase each).
 
+    Parameters
+    ----------
+    on_order_map : dict mapping material name → qty already on order
+                   (pending + approved reorders). Used to avoid re-alerting
+                   when a reorder is already in flight.
+
     Returns a list of alert dicts, sorted: critical first, then triggered,
     then non-triggered — so the UI can show the most urgent first.
     """
+    if on_order_map is None:
+        on_order_map = {}
+
     alerts = []
     for mat in materials.values():
         if not mat.history:
             continue
         phase_index = len(mat.history) - 1
+        on_order = on_order_map.get(mat.name, 0.0)
         alert = check_auto_reorder(
             mat,
             phase_index,
@@ -265,6 +301,7 @@ def check_all_materials(
             dest_lon=dest_lon,
             dest_name=dest_name,
             horizon_days=horizon_days,
+            on_order_qty=on_order,
         )
         alerts.append(alert)
 

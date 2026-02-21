@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BuildSense</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
       *,
       *::before,
@@ -113,6 +118,114 @@
         font-size: 0.85rem;
       }
 
+      /* ── Order Modal ────────────────────────────────────── */
+      #order-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(3px);
+        align-items: center;
+        justify-content: center;
+      }
+      #order-modal-overlay.open {
+        display: flex;
+      }
+      #order-modal {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        width: min(660px, 96vw);
+        max-height: 88vh;
+        overflow-y: auto;
+        padding: 1.8rem 2rem;
+        position: relative;
+        animation: modal-in 0.18s ease;
+      }
+      @keyframes modal-in {
+        from {
+          opacity: 0;
+          transform: translateY(16px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .modal-close {
+        position: absolute;
+        top: 1rem;
+        right: 1.2rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2rem;
+        color: var(--sub);
+        line-height: 1;
+        padding: 0.2rem 0.4rem;
+        border-radius: 5px;
+        transition: color 0.12s;
+      }
+      .modal-close:hover {
+        color: var(--text);
+      }
+
+      /* Pending order row card */
+      .order-row {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.8rem 1rem;
+        border-radius: 9px;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        cursor: pointer;
+        transition:
+          border-color 0.13s,
+          background 0.13s;
+        margin-bottom: 0.55rem;
+      }
+      .order-row:hover {
+        border-color: var(--accent);
+        background: rgba(79, 142, 247, 0.06);
+      }
+      .order-row .order-icon {
+        font-size: 1.4rem;
+        flex-shrink: 0;
+      }
+      .order-row .order-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .order-row .order-title {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+      }
+      .order-row .order-meta {
+        font-size: 0.73rem;
+        color: var(--sub);
+        margin-top: 0.18rem;
+      }
+      .order-row .order-arrow {
+        font-size: 0.85rem;
+        color: var(--sub);
+        flex-shrink: 0;
+      }
+      .crit-badge {
+        font-size: 0.62rem;
+        background: rgba(248, 113, 113, 0.2);
+        color: var(--red);
+        padding: 0.1rem 0.38rem;
+        border-radius: 99px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
       /* Nav badge — red dot for pending reorders */
       .nav-badge {
         margin-left: auto;
@@ -137,6 +250,21 @@
         50% {
           opacity: 0.55;
         }
+      }
+
+      /* Inventory tab switcher */
+      .inv-tab.active-tab {
+        color: var(--accent) !important;
+        border-bottom-color: var(--accent) !important;
+      }
+
+      /* Route minimap inside modal */
+      #modal-minimap {
+        height: 220px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        margin: 0.7rem 0 0.9rem;
       }
 
       /* Projects screen */
@@ -726,23 +854,23 @@
           <div class="proj-site" id="sidebar-proj-site"></div>
         </div>
         <nav id="nav">
-          <div class="nav-section">Overview</div>
+          <div class="nav-section">Project</div>
           <button class="active" onclick="goto('materials')">
             <span class="ico">⬡</span> Materials
           </button>
-
-          <div class="nav-section">Workflow</div>
           <button onclick="goto('initialize')">
-            <span class="ico">✦</span> Initialize
+            <span class="ico">✦</span> Phase Setup
           </button>
+
+          <div class="nav-section">Operations</div>
           <button onclick="goto('order')">
-            <span class="ico">↗</span> Smart Order
+            <span class="ico">↗</span> Order Materials
           </button>
           <button onclick="goto('inventory')">
             <span class="ico">◎</span> Inventory
           </button>
           <button onclick="goto('reorder')" id="nav-reorder-btn">
-            <span class="ico">△</span> Reorder
+            <span class="ico">🔔</span> Orders &amp; Approvals
             <span
               class="nav-badge"
               id="reorder-nav-badge"
@@ -755,7 +883,7 @@
 
           <div class="nav-section">Logistics</div>
           <button onclick="goto('delivery')">
-            <span class="ico">⬡</span> Delivery
+            <span class="ico">⬡</span> Supply Planner
           </button>
         </nav>
       </aside>
@@ -793,10 +921,6 @@
                 <label>Weight/unit (kg)</label
                 ><input id="new-wt" type="number" value="1.0" step="0.1" />
               </div>
-              <div class="field" style="max-width: 95px">
-                <label>Priority 1–10</label
-                ><input id="new-pri" type="number" value="5" min="1" max="10" />
-              </div>
               <button class="btn btn-primary" onclick="addMaterial()">
                 Add
               </button>
@@ -807,12 +931,19 @@
 
         <!-- Initialize -->
         <div class="section" id="s-initialize">
-          <div class="page-hd">Initialize Phase</div>
+          <div class="page-hd">Phase Setup</div>
           <div class="page-sub">
-            Set planned quantities for a new project phase. Ordered amounts with
-            buffer are calculated and saved immediately.
+            Define construction phases and set planned material quantities. The
+            system auto-calculates order amounts with your adaptive buffer.
           </div>
+
+          <!-- Saved phase cards appear here -->
+          <div id="p1-phase-cards"></div>
+
           <div class="card">
+            <div class="card-hd" style="margin-bottom: 0.75rem">
+              ➕ New Phase
+            </div>
             <div class="row" style="margin-bottom: 0.8rem">
               <div class="field" style="max-width: 230px">
                 <label>Phase Name</label>
@@ -824,256 +955,227 @@
               <button class="btn btn-ghost" onclick="addP1Row()">
                 + Material
               </button>
-              <button class="btn btn-primary" onclick="submitP1()">Save</button>
+              <button class="btn btn-primary" onclick="submitP1()">
+                Save Phase
+              </button>
             </div>
           </div>
           <div id="p1-output"></div>
         </div>
 
-        <!-- Smart Order -->
+        <!-- Order Materials -->
         <div class="section" id="s-order">
-          <div class="page-hd">Smart Order</div>
+          <div class="page-hd">Order Materials</div>
           <div class="page-sub">
-            Enter planned quantity. The system applies the adaptive buffer to
-            recommend a safe order amount.
+            Add materials to your order cart. BuildSense will apply your
+            adaptive buffer and recommend the exact quantity — then send the
+            whole order to the <strong>Orders &amp; Approvals</strong> tab.
           </div>
+
+          <!-- Cart -->
           <div class="card">
-            <div class="row">
-              <div class="field">
-                <label>Material</label
-                ><select id="p2-mat"></select>
-              </div>
-              <div class="field" style="max-width: 170px">
-                <label>Planned Quantity</label
-                ><input
-                  id="p2-qty"
-                  type="number"
-                  placeholder="e.g. 200"
-                  step="any"
-                  min="0.001"
-                />
-              </div>
-              <button class="btn btn-primary" onclick="smartOrder()">
-                Calculate
+            <div class="card-hd" style="margin-bottom: 0.8rem">
+              🛒 Order Cart
+            </div>
+            <div id="order-cart-rows"></div>
+            <div
+              style="
+                display: flex;
+                gap: 0.45rem;
+                margin-top: 0.6rem;
+                flex-wrap: wrap;
+              "
+            >
+              <button class="btn btn-ghost" onclick="addCartRow()">
+                + Add Material
+              </button>
+              <button
+                class="btn btn-primary"
+                id="cart-checkout-btn"
+                onclick="cartCheckout()"
+                disabled
+                style="opacity: 0.4; cursor: not-allowed"
+              >
+                Checkout →
               </button>
             </div>
           </div>
-          <div id="p2-output"></div>
+
+          <!-- Cart preview (buffer recommendations) -->
+          <div id="cart-preview"></div>
         </div>
 
         <!-- Inventory -->
         <div class="section" id="s-inventory">
-          <div class="page-hd">Inventory Tracking</div>
+          <div class="page-hd">Inventory</div>
           <div class="page-sub">
-            Log daily consumption and monitor live stock levels per phase.
+            Live stock levels across all materials — log daily usage below.
           </div>
 
+          <!-- Stock Overview -->
           <div class="card">
-            <div class="card-hd">Log Usage</div>
-            <div class="row">
-              <div class="field">
-                <label>Material</label
-                ><select id="p3-mat" onchange="loadPhases('p3')"></select>
-              </div>
-              <div class="field">
-                <label>Phase</label
-                ><select
-                  id="p3-phase"
-                  onchange="renderPhaseSnapshot()"
-                ></select>
-              </div>
-              <div class="field" style="max-width: 145px">
-                <label>Quantity Used</label
-                ><input
-                  id="p3-qty"
-                  type="number"
-                  placeholder="e.g. 18.5"
-                  step="any"
-                  min="0"
-                />
-              </div>
-              <div class="field" style="max-width: 150px">
-                <label>Date</label><input id="p3-date" type="date" />
-              </div>
-              <button class="btn btn-ok" onclick="logDailyUsage()">Log</button>
-            </div>
-          </div>
-
-          <div id="p3-output"></div>
-
-          <!-- Auto-Reorder Site Panel -->
-          <div class="card" id="p3-site-card">
             <div
               style="
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 0.6rem;
+                margin-bottom: 0.9rem;
               "
             >
-              <div>
-                <div class="card-hd" style="margin-bottom: 0.1rem">
-                  🤖 Auto-Reorder Intelligence
-                </div>
-                <div class="sub" style="font-size: 0.72rem">
-                  Set your site location once — every daily log automatically
-                  predicts stockout via EMA and sources materials from the
-                  nearest stores if needed.
-                </div>
+              <div class="card-hd">📦 Current Stock</div>
+              <button
+                class="btn btn-ghost"
+                style="font-size: 0.78rem; padding: 0.3rem 0.7rem"
+                onclick="loadInventoryOverview()"
+              >
+                ↻ Refresh
+              </button>
+            </div>
+            <div
+              id="inv-overview-grid"
+              style="
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+                gap: 0.65rem;
+              "
+            >
+              <div
+                class="sub"
+                style="text-align: center; padding: 1rem; grid-column: 1/-1"
+              >
+                Loading…
               </div>
             </div>
-            <div
-              class="row"
-              style="gap: 0.5rem; align-items: flex-end; flex-wrap: wrap"
-            >
-              <div class="field" style="flex: 1; min-width: 180px">
-                <label>Site / Destination</label>
-                <input
-                  id="ar-geo-input"
-                  type="text"
-                  placeholder="e.g. Jaipur, Rajasthan"
-                  onkeydown="if (event.key === 'Enter') arGeoSearch();"
-                  style="width: 100%"
-                />
-              </div>
-              <button
-                class="btn btn-ghost"
-                onclick="arGeoSearch()"
-                style="margin-bottom: 0"
-              >
-                🔍 Search
-              </button>
-              <button
-                class="btn btn-ghost"
-                onclick="runAllReorderCheck()"
-                style="margin-bottom: 0; color: var(--accent)"
-              >
-                ⚡ Check All Now
-              </button>
-            </div>
-            <div
-              id="ar-geo-results"
-              style="
-                display: none;
-                margin-top: 0.5rem;
-                border: 1px solid var(--border);
-                border-radius: var(--radius);
-                overflow: hidden;
-              "
-            ></div>
-            <div
-              id="ar-site-badge"
-              style="
-                display: none;
-                margin-top: 0.55rem;
-                padding: 0.45rem 0.8rem;
-                background: rgba(39, 174, 96, 0.1);
-                border: 1px solid rgba(39, 174, 96, 0.35);
-                border-radius: var(--radius);
-                font-size: 0.79rem;
-                display: flex;
-                align-items: center;
-                gap: 0.6rem;
-              "
-            >
-              <span>📍</span>
-              <span id="ar-site-label">—</span>
-              <button
-                class="btn btn-ghost"
-                onclick="arClearSite()"
-                style="
-                  margin-left: auto;
-                  font-size: 0.72rem;
-                  padding: 0.2rem 0.5rem;
-                "
-              >
-                ✕
-              </button>
-            </div>
-            <div id="ar-all-output"></div>
           </div>
 
-          <div class="card">
-            <div class="card-hd">Manual Snapshot</div>
-            <div class="row">
-              <div class="field">
-                <label>Ordered Qty</label
-                ><input
-                  id="p3-ordered"
-                  type="number"
-                  placeholder="212"
-                  step="any"
-                />
-              </div>
-              <div class="field">
-                <label>Consumed So Far</label
-                ><input
-                  id="p3-consumed"
-                  type="number"
-                  placeholder="150"
-                  step="any"
-                />
-              </div>
-              <div class="field">
-                <label>Carry-in Stock</label
-                ><input id="p3-carryin" type="number" value="0" step="any" />
-              </div>
-              <button class="btn btn-ghost" onclick="inventoryStatus()">
-                Check
-              </button>
-            </div>
-            <div id="p3-manual"></div>
-          </div>
-
-          <!-- Forecast card -->
-          <div class="card" id="p3-forecast-card" style="display: none">
-            <div
+          <!-- Tab switcher: Log Usage / Usage History -->
+          <div
+            style="
+              display: flex;
+              gap: 0;
+              margin-top: 1.2rem;
+              border-bottom: 1px solid var(--border);
+              margin-bottom: 1.1rem;
+            "
+          >
+            <button
+              id="inv-tab-log"
+              class="inv-tab active-tab"
+              onclick="switchInvTab('log')"
               style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 0.85rem;
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 0.55rem 1.1rem;
+                font-size: 0.82rem;
+                font-weight: 600;
+                color: var(--accent);
+                border-bottom: 2px solid var(--accent);
+                transition: all 0.12s;
               "
             >
-              <div>
-                <div class="card-hd" style="margin-bottom: 0.1rem">
-                  Consumption Forecast
-                </div>
-                <div class="sub" style="font-size: 0.73rem">
-                  MA below 14-day threshold · ARMA/ARIMA above
-                </div>
+              Log Usage
+            </button>
+            <button
+              id="inv-tab-history"
+              class="inv-tab"
+              onclick="switchInvTab('history')"
+              style="
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 0.55rem 1.1rem;
+                font-size: 0.82rem;
+                font-weight: 600;
+                color: var(--sub);
+                border-bottom: 2px solid transparent;
+                transition: all 0.12s;
+              "
+            >
+              Usage History
+            </button>
+          </div>
+
+          <!-- Log Usage pane -->
+          <div id="inv-pane-log">
+            <div class="card">
+              <div class="card-hd" style="margin-bottom: 0.75rem">
+                Log Daily Usage
               </div>
-              <div style="display: flex; align-items: center; gap: 0.5rem">
-                <div class="field" style="max-width: 100px; margin: 0">
-                  <label style="font-size: 0.67rem">Days ahead</label>
+              <div class="row">
+                <div class="field">
+                  <label>Material</label>
+                  <select id="p3-mat" onchange="loadPhases('p3')"></select>
+                </div>
+                <div class="field">
+                  <label>Phase</label>
+                  <select id="p3-phase"></select>
+                </div>
+                <div class="field" style="max-width: 145px">
+                  <label>Quantity Used</label>
                   <input
-                    id="p3-fc-horizon"
+                    id="p3-qty"
                     type="number"
-                    value="14"
-                    min="1"
-                    max="90"
-                    style="padding: 0.3rem 0.55rem"
+                    placeholder="e.g. 18.5"
+                    step="any"
+                    min="0"
                   />
                 </div>
-                <button
-                  class="btn btn-primary"
-                  style="margin-top: 0.95rem"
-                  onclick="runForecast()"
-                >
-                  Forecast
+                <div class="field" style="max-width: 150px">
+                  <label>Date</label>
+                  <input id="p3-date" type="date" />
+                </div>
+                <button class="btn btn-ok" onclick="logDailyUsage()">
+                  Log
                 </button>
               </div>
             </div>
-            <div id="p3-fc-output"></div>
+            <div id="p3-output"></div>
+          </div>
+
+          <!-- Usage History pane -->
+          <div id="inv-pane-history" style="display: none">
+            <div class="card">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 0.8rem;
+                "
+              >
+                <div class="card-hd">Usage History</div>
+                <div style="display: flex; gap: 0.5rem">
+                  <select
+                    id="inv-hist-mat"
+                    onchange="loadUsageHistory()"
+                    style="
+                      font-size: 0.79rem;
+                      padding: 0.3rem 0.6rem;
+                      background: var(--surface2);
+                      border: 1px solid var(--border);
+                      border-radius: 6px;
+                      color: var(--text);
+                    "
+                  ></select>
+                </div>
+              </div>
+              <div id="inv-history-output">
+                <div class="sub" style="text-align: center; padding: 1rem">
+                  Select a material above.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- Reorder -->
         <div class="section" id="s-reorder">
-          <div class="page-hd">Reorder</div>
+          <div class="page-hd">Orders &amp; Approvals</div>
           <div class="page-sub">
-            AI-triggered reorder requests awaiting your approval · approve to
-            auto-source from nearest depots.
+            AI-triggered reorder requests from the EMA engine — click any order
+            to review full details, fetch the optimal route, then approve or
+            reject.
           </div>
 
           <!-- ── Pending Approvals ──────────────────────────────── -->
@@ -1088,7 +1190,7 @@
             >
               <div>
                 <div class="card-hd" style="margin-bottom: 0.1rem">
-                  ⏳ Pending Approvals
+                  🔔 Pending Orders
                   <span
                     id="pending-count-badge"
                     style="
@@ -1105,8 +1207,8 @@
                   ></span>
                 </div>
                 <div class="sub" style="font-size: 0.73rem">
-                  Auto-detected by EMA engine · click Approve to instantly
-                  source &amp; book delivery
+                  Auto-detected by EMA engine · click an order to review &amp;
+                  approve
                 </div>
               </div>
               <button
@@ -1124,49 +1226,97 @@
             </div>
           </div>
 
-          <!-- ── Manual Reorder Check (legacy) ─────────────────── -->
+          <!-- ── In Transit (Approved, awaiting arrival) ───────── -->
           <div class="card" style="margin-top: 1.1rem">
-            <div class="card-hd" style="margin-bottom: 0.7rem">
-              Manual Snapshot Check
-            </div>
-            <div class="row">
-              <div class="field">
-                <label>Material</label
-                ><select id="p4-mat"></select>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.85rem;
+              "
+            >
+              <div>
+                <div class="card-hd" style="margin-bottom: 0.1rem">
+                  🚛 In Transit
+                </div>
+                <div class="sub" style="font-size: 0.73rem">
+                  Approved orders on their way — mark as arrived to add to
+                  inventory
+                </div>
               </div>
-              <div class="field">
-                <label>Ordered Qty</label
-                ><input
-                  id="p4-ordered"
-                  type="number"
-                  placeholder="212"
-                  step="any"
-                />
-              </div>
-              <div class="field">
-                <label>Current Remaining</label
-                ><input
-                  id="p4-remaining"
-                  type="number"
-                  placeholder="40"
-                  step="any"
-                />
-              </div>
-              <div class="field">
-                <label>Next Phase Planned</label
-                ><input
-                  id="p4-planned"
-                  type="number"
-                  placeholder="200"
-                  step="any"
-                />
-              </div>
-              <button class="btn btn-primary" onclick="reorderCheck()">
-                Check
+              <button
+                class="btn btn-ghost"
+                style="font-size: 0.8rem; padding: 0.35rem 0.8rem"
+                onclick="loadInTransit()"
+              >
+                ↻ Refresh
               </button>
             </div>
+            <div id="in-transit-output">
+              <div class="sub" style="text-align: center; padding: 1rem">
+                Loading…
+              </div>
+            </div>
           </div>
-          <div id="p4-output"></div>
+
+          <!-- ── Order History / Transaction Log ───────────────── -->
+          <div class="card" style="margin-top: 1.1rem">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 0.85rem;
+              "
+            >
+              <div>
+                <div class="card-hd" style="margin-bottom: 0.1rem">
+                  📋 Order History
+                </div>
+                <div class="sub" style="font-size: 0.73rem">
+                  All auto-triggered reorder events · newest first
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center">
+                <button
+                  class="btn btn-ghost"
+                  style="font-size: 0.8rem; padding: 0.35rem 0.8rem"
+                  onclick="loadReorderLogs()"
+                >
+                  ↻ Refresh
+                </button>
+                <button
+                  class="btn"
+                  style="
+                    font-size: 0.8rem;
+                    padding: 0.35rem 0.8rem;
+                    background: #ef4444;
+                    color: #fff;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                  "
+                  onclick="clearReorderLogs()"
+                >
+                  🗑 Clear
+                </button>
+              </div>
+            </div>
+            <div id="reorder-log-output">
+              <div class="sub" style="text-align: center; padding: 1.2rem 0">
+                Click ↻ Refresh to load history.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Detail Modal (fixed overlay, controlled via .open class) -->
+        <div id="order-modal-overlay">
+          <div id="order-modal">
+            <button class="modal-close" onclick="closeOrderModal()">✕</button>
+            <div id="order-modal-content"></div>
+          </div>
         </div>
 
         <!-- Close Phase -->
@@ -1233,54 +1383,6 @@
           <div id="p5-history"></div>
 
           <!-- ── Reorder Transaction Log ─────────────────────────── -->
-          <div class="card" style="margin-top: 1.4rem">
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 0.85rem;
-              "
-            >
-              <div>
-                <div class="card-hd" style="margin-bottom: 0.1rem">
-                  📋 Reorder Transaction Log
-                </div>
-                <div class="sub" style="font-size: 0.73rem">
-                  All auto-triggered reorder events · newest first
-                </div>
-              </div>
-              <div style="display: flex; gap: 0.5rem; align-items: center">
-                <button
-                  class="btn btn-ghost"
-                  style="font-size: 0.8rem; padding: 0.35rem 0.8rem"
-                  onclick="loadReorderLogs()"
-                >
-                  ↻ Refresh
-                </button>
-                <button
-                  class="btn"
-                  style="
-                    font-size: 0.8rem;
-                    padding: 0.35rem 0.8rem;
-                    background: var(--danger, #ef4444);
-                    color: #fff;
-                    border: none;
-                    border-radius: 6px;
-                    cursor: pointer;
-                  "
-                  onclick="clearReorderLogs()"
-                >
-                  🗑 Clear All
-                </button>
-              </div>
-            </div>
-            <div id="reorder-log-output">
-              <div class="sub" style="text-align: center; padding: 1.2rem 0">
-                Click ↻ Refresh to load logs.
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- Delivery / Supply Network -->
@@ -1716,7 +1818,10 @@
       ];
 
       /* Navigation */
+      let _activeTab = "materials";
+
       function goto(id) {
+        _activeTab = id;
         document
           .querySelectorAll(".section")
           .forEach((s) => s.classList.remove("active"));
@@ -1724,19 +1829,70 @@
         document
           .querySelectorAll("nav button")
           .forEach((b, i) => b.classList.toggle("active", NAV_IDS[i] === id));
+        if (id === "order") {
+          // Seed with one empty row if cart is empty
+          if (!document.querySelector("#order-cart-rows .row")) addCartRow();
+        }
         if (id === "delivery") {
           buildDeliveryMatRows();
           buildSnReqRows();
           initDeliveryMap();
           snLoadNetworkInfo();
         }
+        if (id === "initialize") {
+          // Rebuild phase cards from current material history
+          _savedPhases = {};
+          materials.forEach((m) => {
+            m.history.forEach((h) => {
+              if (!_savedPhases[h.phase_name]) _savedPhases[h.phase_name] = [];
+              const existing = _savedPhases[h.phase_name].findIndex(
+                (x) => x.material === m.name,
+              );
+              const entry = {
+                material: m.name,
+                unit: m.unit,
+                planned_qty: h.planned_qty,
+                buffer_pct: m.buffer_pct,
+                ordered_qty:
+                  Math.round(h.planned_qty * (1 + m.buffer_pct / 100) * 10000) /
+                  10000,
+              };
+              if (existing >= 0) _savedPhases[h.phase_name][existing] = entry;
+              else _savedPhases[h.phase_name].push(entry);
+            });
+          });
+          renderPhaseCards();
+          if (!document.querySelector("#p1-rows .row")) addP1Row();
+        }
         if (id === "inventory") {
           loadPhases("p3");
-          loadReorderLogs();
+          loadInventoryOverview();
+          populateInvHistorySelect();
         }
         if (id === "reorder") {
           loadPendingReorders();
+          loadInTransit();
+          loadReorderLogs();
         }
+        if (id === "materials") {
+          loadMaterials().catch(() => {});
+        }
+      }
+
+      /** Silently refresh whatever tab is currently visible. */
+      function _refreshActiveTab() {
+        if (!activeProject) return;
+        try {
+          if (_activeTab === "reorder") {
+            loadPendingReorders();
+            loadInTransit();
+          } else if (_activeTab === "inventory") {
+            loadInventoryOverview();
+          } else if (_activeTab === "materials") {
+            loadMaterials().catch(() => {});
+          }
+          refreshPendingBadge();
+        } catch (_) {}
       }
 
       /* Toast */
@@ -1787,7 +1943,27 @@
             .join("");
           if (names.includes(cur)) el.value = cur;
         });
+        // Also refresh any existing cart rows' selects
+        document
+          .querySelectorAll("#order-cart-rows .cart-mat")
+          .forEach((sel) => {
+            const cur = sel.value;
+            sel.innerHTML = names.map((n) => `<option>${n}</option>`).join("");
+            if (names.includes(cur)) sel.value = cur;
+          });
+        populateInvHistorySelect();
         loadPhases("p3");
+      }
+
+      function populateInvHistorySelect() {
+        const el = document.getElementById("inv-hist-mat");
+        if (!el) return;
+        const names = materials.map((m) => m.name);
+        const cur = el.value;
+        el.innerHTML = names
+          .map((n) => `<option value="${n}">${n}</option>`)
+          .join("");
+        if (names.includes(cur)) el.value = cur;
       }
 
       function matByName(n) {
@@ -1797,24 +1973,19 @@
       function renderMaterialCards() {
         document.getElementById("mat-cards").innerHTML = materials
           .map((m) => {
-            const drift = (m.buffer_pct - m.baseline_buffer_pct).toFixed(2);
-            const dc = +drift > 0 ? "warn" : +drift < 0 ? "bad" : "good";
             return `
 <div class="card" style="margin:0;">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem;">
     <div>
       <div style="font-weight:700;font-size:.9rem;">${m.name}</div>
-      <div class="sub" style="margin-top:.12rem;">${m.unit} &middot; ${m.weight_per_unit}&thinsp;kg/unit &middot; Priority&thinsp;${m.priority}</div>
+      <div class="sub" style="margin-top:.12rem;">${m.unit} &middot; ${m.weight_per_unit}&thinsp;kg/unit</div>
     </div>
     <button class="btn btn-ghost" style="font-size:.68rem;padding:.2rem .5rem;" onclick="deleteMaterial('${m.name}')">✕</button>
   </div>
   <div class="stats" style="margin-bottom:.7rem;">
-    <div class="stat"><div class="stat-label">Baseline</div><div class="stat-value">${m.baseline_buffer_pct.toFixed(1)}%</div></div>
-    <div class="stat"><div class="stat-label">Current</div><div class="stat-value ${dc}">${m.buffer_pct.toFixed(2)}%</div></div>
-    <div class="stat"><div class="stat-label">Drift</div><div class="stat-value ${dc}">${+drift >= 0 ? "+" : ""}${drift}%</div></div>
+    <div class="stat"><div class="stat-label">Buffer</div><div class="stat-value">${m.baseline_buffer_pct.toFixed(1)}%</div></div>
     <div class="stat"><div class="stat-label">Phases</div><div class="stat-value good">${m.phases_logged}</div></div>
   </div>
-  <button class="btn btn-ghost" style="font-size:.72rem;" onclick="resetBuffer('${m.name}')">↺ Reset Buffer</button>
 </div>`;
           })
           .join("");
@@ -1834,7 +2005,7 @@
             weight_per_unit: parseFloat(
               document.getElementById("new-wt").value,
             ),
-            priority: parseInt(document.getElementById("new-pri").value),
+            priority: 5,
           });
           document.getElementById("new-name").value = "";
           document.getElementById("new-unit").value = "";
@@ -1877,6 +2048,72 @@
         document.getElementById("p1-rows").appendChild(div);
       }
 
+      // ─── Phase Setup cards ───────────────────────────────────────
+      // Track saved phases for this session so cards persist
+      let _savedPhases = {}; // { phaseName: [{ material, unit, planned_qty, buffer_pct, ordered_qty }] }
+
+      function renderPhaseCards() {
+        const container = document.getElementById("p1-phase-cards");
+        if (!container) return;
+        const phaseNames = Object.keys(_savedPhases);
+        if (!phaseNames.length) {
+          container.innerHTML = "";
+          return;
+        }
+
+        container.innerHTML = phaseNames
+          .map((phaseName) => {
+            const items = _savedPhases[phaseName];
+            const rows = items
+              .map(
+                (r) => `
+<tr>
+  <td style="padding:.3rem .5rem;font-weight:600;">${r.material}</td>
+  <td style="padding:.3rem .5rem;color:var(--sub);">${r.unit}</td>
+  <td style="padding:.3rem .5rem;">${r.planned_qty.toLocaleString(undefined, { maximumFractionDigits: 3 })}</td>
+  <td style="padding:.3rem .5rem;color:var(--amber);">${r.buffer_pct.toFixed(1)}%</td>
+  <td style="padding:.3rem .5rem;color:var(--green);font-weight:700;">${r.ordered_qty.toLocaleString(undefined, { maximumFractionDigits: 3 })}</td>
+</tr>`,
+              )
+              .join("");
+
+            return `
+<div class="card" style="margin-bottom:.75rem;border-left:3px solid var(--accent);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;">
+    <div>
+      <div style="font-weight:700;font-size:.92rem;">📋 ${phaseName}</div>
+      <div class="sub" style="font-size:.72rem;">${items.length} material${items.length !== 1 ? "s" : ""} configured</div>
+    </div>
+    <button class="btn btn-ghost" style="font-size:.73rem;padding:.25rem .6rem;"
+      onclick="addMaterialToPhase('${phaseName}')">+ Add Material</button>
+  </div>
+  <div class="tbl-wrap"><table style="width:100%;border-collapse:collapse;font-size:.78rem;">
+    <thead><tr style="color:var(--sub);font-size:.7rem;">
+      <th style="padding:.25rem .5rem;text-align:left;">Material</th>
+      <th style="padding:.25rem .5rem;text-align:left;">Unit</th>
+      <th style="padding:.25rem .5rem;text-align:left;">Planned</th>
+      <th style="padding:.25rem .5rem;text-align:left;">Buffer</th>
+      <th style="padding:.25rem .5rem;text-align:left;">Recommended Order</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>
+</div>`;
+          })
+          .join("");
+      }
+
+      function addMaterialToPhase(phaseName) {
+        // Pre-fill the phase name field and scroll to form
+        document.getElementById("p1-phase").value = phaseName;
+        // Clear rows and add a fresh one
+        document.getElementById("p1-rows").innerHTML = "";
+        addP1Row();
+        document
+          .getElementById("p1-phase")
+          .scrollIntoView({ behavior: "smooth", block: "center" });
+        toast(`Add more materials to "${phaseName}" below.`, "info");
+      }
+
       async function submitP1() {
         const phase = document.getElementById("p1-phase").value.trim();
         if (!phase) return toast("Enter a phase name.", "warn");
@@ -1907,70 +2144,202 @@
           }
         }
         await loadMaterials();
+        if (_activeTab === "inventory") loadInventoryOverview();
+
+        // Merge results into the persistent phase card tracker
+        if (!_savedPhases[phase]) _savedPhases[phase] = [];
+        results.forEach((r) => {
+          const m = matByName(r.material);
+          // Replace entry if same material already in phase, otherwise append
+          const existing = _savedPhases[phase].findIndex(
+            (x) => x.material === r.material,
+          );
+          const entry = {
+            material: r.material,
+            unit: r.unit,
+            planned_qty: r.planned_qty,
+            buffer_pct: m ? m.buffer_pct : 0,
+            ordered_qty: r.ordered_qty,
+          };
+          if (existing >= 0) _savedPhases[phase][existing] = entry;
+          else _savedPhases[phase].push(entry);
+        });
+        renderPhaseCards();
+
+        // Clear the rows and phase name so the form is ready for the next phase
+        document.getElementById("p1-rows").innerHTML = "";
+        document.getElementById("p1-phase").value = "";
+        document.getElementById("p1-output").innerHTML = "";
+
         errors.length
           ? toast(`Saved ${results.length}, ${errors.length} error(s).`, "warn")
           : toast(
-              `'${phase}' initialized for ${results.length} material(s).`,
+              `'${phase}' saved — ${results.length} material(s) configured.`,
               "ok",
             );
 
-        document.getElementById("p1-output").innerHTML = `
-<div class="card">
-  <div class="banner ${errors.length ? "b-warn" : "b-ok"}">
-    ${errors.length ? "⚠" : "✓"} Phase <strong>${phase}</strong> — ${results.length} saved${errors.length ? `, ${errors.length} failed` : ""}.
-  </div>
-  <div class="tbl-wrap"><table>
-    <thead><tr><th>Material</th><th>Unit</th><th>Planned</th><th>Buffer</th><th>Recommended Order</th></tr></thead>
-    <tbody>
-      ${results
-        .map((r) => {
-          const m = matByName(r.material);
-          return `
-      <tr>
-        <td><strong>${r.material}</strong></td>
-        <td>${r.unit}</td>
-        <td>${r.planned_qty.toFixed(3)}</td>
-        <td>${m ? m.buffer_pct.toFixed(2) + "%" : "—"}</td>
-        <td class="good" style="font-weight:600;">${r.ordered_qty.toFixed(3)}</td>
-      </tr>`;
-        })
-        .join("")}
-      ${errors.map((e) => `<tr><td colspan="5" class="bad">${e}</td></tr>`).join("")}
-    </tbody>
-  </table></div>
-</div>`;
+        // Scroll up to show the new card
+        document
+          .getElementById("p1-phase-cards")
+          .scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
-      /* Smart Order */
-      async function smartOrder() {
-        const mat = document.getElementById("p2-mat").value;
-        const qty = parseFloat(document.getElementById("p2-qty").value);
-        if (!qty || qty <= 0)
-          return toast("Enter a valid planned quantity.", "warn");
-        try {
-          const r = await api("POST", "/phase/smart-order", {
-            material: mat,
-            planned_qty: qty,
-          });
-          const m = matByName(mat);
-          const drift = m
-            ? (m.buffer_pct - m.baseline_buffer_pct).toFixed(2)
-            : 0;
-          document.getElementById("p2-output").innerHTML = `
-<div class="card">
-  <div class="banner b-info">↗ Order recommendation for <strong>${r.material}</strong></div>
-  <div class="stats">
-    <div class="stat"><div class="stat-label">Planned</div><div class="stat-value">${r.planned_qty.toFixed(3)}</div></div>
-    <div class="stat"><div class="stat-label">Buffer</div><div class="stat-value warn">${r.buffer_pct.toFixed(2)}%</div></div>
-    <div class="stat"><div class="stat-label">Order Qty</div><div class="stat-value good">${r.recommended_qty.toFixed(3)}</div></div>
-    <div class="stat"><div class="stat-label">Drift</div><div class="stat-value ${+drift >= 0 ? "warn" : "bad"}">${+drift >= 0 ? "+" : ""}${drift}%</div></div>
-  </div>
-  <div class="sub mt">Unit: <strong style="color:var(--text)">${r.unit}</strong> &nbsp;&middot;&nbsp; Order <strong style="color:var(--green)">${r.recommended_qty.toFixed(3)} ${r.unit}</strong> to cover ${r.planned_qty} ${r.unit} planned.</div>
-</div>`;
-        } catch (e) {
-          toast(e.message, "err");
-        }
+      // ─── Order Cart ──────────────────────────────────────────────
+      let _cartItems = []; // [{ material, planned_qty, unit, buffer_pct, recommended_qty }]
+
+      function addCartRow() {
+        const div = document.createElement("div");
+        div.className = "row";
+        div.style.cssText = "margin-bottom:.5rem;align-items:flex-end;";
+        div.innerHTML = `
+<div class="field">
+  <label>Material</label>
+  <select class="cart-mat" onchange="updateCartRow(this)">${materials.map((m) => `<option>${m.name}</option>`).join("")}</select>
+</div>
+<div class="field" style="max-width:145px;">
+  <label>Planned Qty</label>
+  <input class="cart-qty" type="number" placeholder="e.g. 200" step="any" min="0.001"
+    oninput="updateCartRow(this)"/>
+</div>
+<div class="cart-rec sub" style="min-width:120px;font-size:.74rem;padding-top:1.4rem;"></div>
+<button class="btn btn-ghost" style="padding:.4rem .6rem;" onclick="removeCartRow(this)">✕</button>`;
+        document.getElementById("order-cart-rows").appendChild(div);
+        refreshCheckoutBtn();
       }
+
+      function removeCartRow(btn) {
+        btn.closest(".row").remove();
+        refreshCheckoutBtn();
+      }
+
+      function updateCartRow(el) {
+        const row = el.closest(".row");
+        const name = row.querySelector(".cart-mat").value;
+        const qty = parseFloat(row.querySelector(".cart-qty").value);
+        const rec = row.querySelector(".cart-rec");
+        const m = matByName(name);
+        if (m && qty > 0) {
+          const recommended = qty * (1 + m.buffer_pct / 100);
+          rec.innerHTML = `→ <b style="color:var(--green);">${recommended.toFixed(2)} ${m.unit}</b>
+            <span style="color:var(--sub);"> (${m.buffer_pct.toFixed(1)}% buffer)</span>`;
+        } else {
+          rec.innerHTML = "";
+        }
+        refreshCheckoutBtn();
+      }
+
+      function refreshCheckoutBtn() {
+        const rows = [...document.querySelectorAll("#order-cart-rows .row")];
+        const hasItem = rows.some((r) => {
+          const q = parseFloat(r.querySelector(".cart-qty")?.value);
+          return q > 0;
+        });
+        const btn = document.getElementById("cart-checkout-btn");
+        btn.disabled = !hasItem;
+        btn.style.opacity = hasItem ? "1" : ".4";
+        btn.style.cursor = hasItem ? "pointer" : "not-allowed";
+      }
+
+      async function cartCheckout() {
+        const rows = [...document.querySelectorAll("#order-cart-rows .row")];
+        const items = rows
+          .map((r) => ({
+            material: r.querySelector(".cart-mat").value,
+            planned_qty: parseFloat(r.querySelector(".cart-qty").value),
+          }))
+          .filter((i) => i.planned_qty > 0);
+
+        if (!items.length)
+          return toast("Add at least one material with a quantity.", "warn");
+
+        // ── Phase membership warning ──────────────────────────────
+        const noPhase = items.filter((i) => {
+          const m = matByName(i.material);
+          return !m || !m.history || m.history.length === 0;
+        });
+        if (noPhase.length) {
+          const names = noPhase.map((i) => `<b>${i.material}</b>`).join(", ");
+          const prev = document.getElementById("cart-phase-warning");
+          if (prev) prev.remove();
+          const warn = document.createElement("div");
+          warn.id = "cart-phase-warning";
+          warn.style.cssText =
+            "margin:.7rem 0;padding:.55rem .8rem;background:rgba(251,191,36,.1);border-left:3px solid var(--amber);border-radius:var(--radius);font-size:.78rem;";
+          warn.innerHTML = `⚠ ${names} ${noPhase.length === 1 ? "has" : "have"} no active phase.
+            Ordering without a phase means usage won't be tracked automatically.
+            <div style="display:flex;gap:.5rem;margin-top:.5rem;">
+              <button class="btn btn-primary" style="font-size:.73rem;padding:.3rem .7rem;"
+                onclick="document.getElementById('cart-phase-warning').remove();_cartCheckoutConfirmed=true;cartCheckout();">
+                Order anyway
+              </button>
+              <button class="btn btn-ghost" style="font-size:.73rem;padding:.3rem .7rem;"
+                onclick="document.getElementById('cart-phase-warning').remove();">
+                Cancel
+              </button>
+            </div>`;
+          document
+            .getElementById("cart-checkout-btn")
+            .insertAdjacentElement("afterend", warn);
+          if (!window._cartCheckoutConfirmed) return;
+        }
+        window._cartCheckoutConfirmed = false;
+
+        const btn = document.getElementById("cart-checkout-btn");
+        btn.disabled = true;
+        btn.textContent = "Sending…";
+
+        try {
+          const res = await api("POST", "/phase/manual-order", { items });
+          const created = res.created || [];
+          const errors = res.errors || [];
+
+          // Show buffer breakdown
+          document.getElementById("cart-preview").innerHTML = `
+<div class="card" style="margin-top:.8rem;">
+  <div class="banner b-ok">✓ ${created.length} order${created.length !== 1 ? "s" : ""} sent to Orders &amp; Approvals</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Material</th><th>You planned</th><th>Buffer</th><th>Recommended order</th></tr></thead>
+    <tbody>
+      ${created
+        .map(
+          (c) => `
+      <tr>
+        <td><b>${c.material}</b></td>
+        <td>${c.planned_qty.toLocaleString()} ${c.unit}</td>
+        <td style="color:var(--amber);">${c.buffer_pct.toFixed(1)}%</td>
+        <td style="color:var(--green);font-weight:700;">${c.recommended_qty.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${c.unit}</td>
+      </tr>`,
+        )
+        .join("")}
+      ${errors.map((e) => `<tr><td colspan="4" style="color:var(--red);">${e.material}: ${e.error}</td></tr>`).join("")}
+    </tbody>
+  </table></div>
+  <div style="margin-top:.8rem;display:flex;gap:.5rem;">
+    <button class="btn btn-primary" onclick="goto('reorder');loadPendingReorders();loadInTransit();">Go to Orders &amp; Approvals →</button>
+    <button class="btn btn-ghost" onclick="clearCart()">Clear Cart</button>
+  </div>
+</div>`;
+
+          // Clear rows
+          document.getElementById("order-cart-rows").innerHTML = "";
+          refreshCheckoutBtn();
+          refreshPendingBadge();
+          toast(`${created.length} order(s) queued for approval!`, "ok");
+        } catch (e) {
+          toast("Error: " + e.message, "err");
+        }
+        btn.disabled = false;
+        btn.textContent = "Checkout →";
+      }
+
+      function clearCart() {
+        document.getElementById("order-cart-rows").innerHTML = "";
+        document.getElementById("cart-preview").innerHTML = "";
+        refreshCheckoutBtn();
+      }
+
+      /* Smart Order (kept for compatibility) */
+      async function smartOrder() {}
 
       /* Phase dropdown */
       function loadPhases(prefix) {
@@ -2127,6 +2496,12 @@
           await loadMaterials();
           loadPhases("p3");
           renderPhaseSnapshot();
+          refreshPendingBadge();
+          // If reorder tab is open, update it live
+          if (_activeTab === "reorder") {
+            loadPendingReorders();
+            loadInTransit();
+          }
           toast(`Logged ${qty} for ${mat}.`, "ok");
 
           // ── Auto-reorder inline alert ──────────────────────── //
@@ -2590,15 +2965,12 @@
           remaining: rem,
           planned_qty: plan,
         });
-        const remPct = ((r.remaining / ord) * 100).toFixed(1);
         const fc = r.alert ? "var(--red)" : "var(--green)";
         document.getElementById("p4-output").innerHTML = `
 <div class="card">
   <div class="banner ${r.alert ? "b-warn" : "b-ok"}">
     ${r.alert ? `⚠ Reorder needed — stock critically low for <strong>${r.material}</strong>` : `✓ Stock sufficient for <strong>${r.material}</strong>`}
   </div>
-  <div class="prog"><div class="prog-fill" style="width:${remPct}%;background:${fc};"></div></div>
-  <div class="sub" style="margin-bottom:.7rem;">${remPct}% of original order remaining</div>
   <div class="stats">
     <div class="stat"><div class="stat-label">Remaining</div><div class="stat-value ${r.alert ? "bad" : "good"}">${r.remaining.toFixed(3)} ${r.unit}</div></div>
     <div class="stat"><div class="stat-label">Threshold (20%)</div><div class="stat-value warn">${r.threshold_qty.toFixed(3)} ${r.unit}</div></div>
@@ -2632,6 +3004,7 @@
           });
           await loadMaterials();
           loadPhases("p3");
+          if (_activeTab === "inventory") loadInventoryOverview();
           const dir = r.waste_pct >= 0 ? "over-ordered" : "under-ordered";
           const wc =
             Math.abs(r.waste_pct) < 5
@@ -3640,7 +4013,7 @@
       }
 
       // ═══════════════════════════════════════════════════════════════
-      //  NAV BADGE — polls pending count every 30s
+      //  NAV BADGE + LIVE REFRESH — polls every 15s
       // ═══════════════════════════════════════════════════════════════
       let _badgePollTimer = null;
 
@@ -3663,14 +4036,20 @@
       }
 
       function pollPendingBadge() {
-        refreshPendingBadge();
+        _refreshActiveTab();
         clearInterval(_badgePollTimer);
-        _badgePollTimer = setInterval(refreshPendingBadge, 30000);
+        _badgePollTimer = setInterval(_refreshActiveTab, 15000);
       }
 
       // ═══════════════════════════════════════════════════════════════
-      //  PENDING REORDERS — approval queue
+      //  PENDING REORDERS — approval queue (modal-based)
       // ═══════════════════════════════════════════════════════════════
+
+      // Store fetched items so modal can reference them
+      let _pendingItems = [];
+      let _modalItemId = null;
+      let _fetchedRoutePlan = null; // supply plan fetched via "Fetch Route"
+
       async function loadPendingReorders() {
         const out = document.getElementById("pending-reorders-output");
         out.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;">Loading…</div>`;
@@ -3681,30 +4060,31 @@
           const data = await (
             await fetch("/api/pending-reorders?status=pending", { headers })
           ).json();
-          const items = data.items || [];
+          _pendingItems = data.items || [];
 
           // Update in-page count badge
           const cb = document.getElementById("pending-count-badge");
-          if (items.length) {
-            cb.textContent = items.length;
+          if (_pendingItems.length) {
+            cb.textContent = _pendingItems.length;
             cb.style.display = "inline";
           } else {
             cb.style.display = "none";
           }
 
-          if (!items.length) {
+          if (!_pendingItems.length) {
             out.innerHTML = `
-<div style="text-align:center;padding:1.6rem 0;">
-  <div style="font-size:2rem;margin-bottom:.5rem;">✅</div>
-  <div style="font-weight:600;color:var(--text);">No pending reorders</div>
-  <div class="sub" style="font-size:.76rem;margin-top:.3rem;">The EMA engine will raise requests here automatically as stock falls.</div>
+<div style="text-align:center;padding:2rem 0;">
+  <div style="font-size:2.2rem;margin-bottom:.5rem;">✅</div>
+  <div style="font-weight:600;color:var(--text);">No pending orders</div>
+  <div class="sub" style="font-size:.76rem;margin-top:.3rem;">
+    The EMA engine will raise requests here automatically as stock falls.
+  </div>
 </div>`;
             return;
           }
 
-          // Check if project site is configured (use activeProject)
-          const hasSite = !!(activeProject && activeProject.dest_lat);
-          if (hasSite && !siteCoords) {
+          // Sync project site
+          if (activeProject?.dest_lat && !siteCoords) {
             siteCoords = {
               lat: activeProject.dest_lat,
               lon: activeProject.dest_lon,
@@ -3714,57 +4094,74 @@
           }
 
           let html = "";
-          if (!hasSite) {
+          if (!(activeProject && activeProject.dest_lat)) {
             html += `<div style="padding:.6rem .9rem;background:rgba(251,191,36,.08);
               border-left:3px solid var(--amber);border-radius:var(--radius);
               font-size:.77rem;margin-bottom:.85rem;">
-              ⚠ <b>No project site configured.</b> Go back to Projects and set a destination for this project.
+              ⚠ <b>No project site configured.</b> Go to Projects and set a destination to enable route planning.
             </div>`;
           }
 
-          items.forEach((item) => {
-            const isCrit = item.critical;
-            const borderColor = isCrit ? "var(--red)" : "var(--amber)";
-            const bg = isCrit
-              ? "rgba(248,113,113,.07)"
-              : "rgba(251,191,36,.06)";
+          // ── Group items: batch vs singles ──────────────────────
+          const batches = {}; // batch_id → [items]
+          const singles = [];
+          _pendingItems.forEach((item) => {
+            if (item.batch_id && item.source === "manual-order") {
+              (batches[item.batch_id] = batches[item.batch_id] || []).push(
+                item,
+              );
+            } else {
+              singles.push(item);
+            }
+          });
+
+          // Render batch cards (one card per cart checkout)
+          Object.entries(batches).forEach(([batchId, bItems]) => {
+            const matNames = bItems.map((b) => b.material).join(" · ");
+            const totalQty = bItems.reduce(
+              (s, b) => s + (b.reorder_qty || 0),
+              0,
+            );
+            const firstId = bItems[0].id;
+            const ids = bItems.map((b) => b.id).join(",");
             html += `
-<div id="pending-item-${item.id}" style="margin-bottom:.75rem;padding:.85rem 1rem;
-  background:${bg};border-left:3px solid ${borderColor};border-radius:var(--radius);">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem;">
-    <div>
-      <div style="font-weight:700;font-size:.9rem;color:var(--text);">
-        ${isCrit ? "🚨" : "⚠️"} ${item.material}
-        ${
-          isCrit
-            ? `<span style="margin-left:.4rem;font-size:.68rem;background:rgba(248,113,113,.2);
-          color:var(--red);padding:.1rem .4rem;border-radius:99px;">CRITICAL</span>`
-            : ""
-        }
-      </div>
-      <div class="sub" style="font-size:.74rem;margin-top:.25rem;">
-        <b>${item.reorder_qty != null ? item.reorder_qty.toLocaleString() : "—"} ${item.unit}</b> needed
-        &nbsp;·&nbsp; ${item.days_remaining != null ? item.days_remaining.toFixed(1) + " days left" : "stock low"}
-        &nbsp;·&nbsp; Stockout: <b>${item.stockout_date || "—"}</b>
-        &nbsp;·&nbsp; EMA: ${item.ema_rate != null ? item.ema_rate.toFixed(2) : "—"} ${item.unit}/day
-      </div>
-      <div class="sub" style="font-size:.7rem;margin-top:.15rem;">
-        Detected ${item.timestamp ? item.timestamp.replace("T", " ").replace("Z", "") + " UTC" : "—"}
-        &nbsp;·&nbsp; via ${item.source === "batch-check" ? "Batch Scan" : "Daily Log"}
-      </div>
+<div class="order-row" id="pending-batch-${batchId}" data-batch="${batchId}" data-ids="${ids}"
+  onclick="openOrderModal(${firstId})">
+  <div class="order-icon">🛒</div>
+  <div class="order-main">
+    <div class="order-title">
+      ${matNames}
+      <span style="font-size:.65rem;font-weight:600;padding:.1rem .4rem;background:rgba(79,142,247,.15);color:var(--accent);border-radius:4px;margin-left:.35rem;">Combined</span>
     </div>
-    <div style="display:flex;gap:.45rem;flex-shrink:0;align-items:center;">
-      <button class="btn btn-primary" style="font-size:.78rem;padding:.38rem .85rem;"
-        onclick="approvePendingReorder(${item.id}, this)">
-        ✓ Approve &amp; Book
-      </button>
-      <button class="btn btn-ghost" style="font-size:.78rem;padding:.38rem .75rem;color:var(--red);"
-        onclick="rejectPendingReorder(${item.id}, this)">
-        ✕ Reject
-      </button>
+    <div class="order-meta">
+      <b>${bItems.length} materials</b> &nbsp;·&nbsp; Combined order
+      &nbsp;·&nbsp; Total: <b>${totalQty.toLocaleString(undefined, { maximumFractionDigits: 1 })} units</b>
+      &nbsp;·&nbsp; ${bItems[0].timestamp ? new Date(bItems[0].timestamp).toLocaleDateString() : ""}
     </div>
   </div>
-  <div id="pending-item-result-${item.id}"></div>
+  <div class="order-arrow">›</div>
+</div>`;
+          });
+
+          // Render single (auto-reorder) items
+          singles.forEach((item) => {
+            const isCrit = item.critical;
+            html += `
+<div class="order-row" id="pending-item-${item.id}" onclick="openOrderModal(${item.id})">
+  <div class="order-icon">${isCrit ? "🚨" : "⚠️"}</div>
+  <div class="order-main">
+    <div class="order-title">
+      ${item.material}
+      ${isCrit ? `<span class="crit-badge">Critical</span>` : ""}
+    </div>
+    <div class="order-meta">
+      <b>${item.reorder_qty != null ? item.reorder_qty.toLocaleString() : "—"} ${item.unit || ""}</b> needed
+      &nbsp;·&nbsp; ${item.days_remaining != null ? item.days_remaining.toFixed(1) + " days left" : "stock low"}
+      &nbsp;·&nbsp; Stockout: <b>${item.stockout_date || "—"}</b>
+      &nbsp;·&nbsp; ${item.timestamp ? new Date(item.timestamp).toLocaleDateString() : ""}
+    </div>
+  </div>
+  <div class="order-arrow">›</div>
 </div>`;
           });
 
@@ -3774,87 +4171,643 @@
         }
       }
 
-      async function approvePendingReorder(itemId, btn) {
+      // ─── Inventory Overview ──────────────────────────────────────
+      async function loadInventoryOverview() {
+        const grid = document.getElementById("inv-overview-grid");
+        if (!grid) return;
+        grid.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;grid-column:1/-1;">Loading…</div>`;
+        try {
+          const mats = await api("GET", "/materials");
+          if (!mats.length) {
+            grid.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;grid-column:1/-1;">No materials yet.</div>`;
+            return;
+          }
+          grid.innerHTML = mats
+            .map((m) => {
+              const lastPhase = m.history?.at(-1);
+              const remaining = lastPhase?.remaining_stock ?? null;
+              const consumed = lastPhase?.consumed_qty ?? null;
+              const planned = lastPhase?.planned_qty ?? null;
+              const remColor =
+                remaining == null
+                  ? "var(--sub)"
+                  : remaining === 0
+                    ? "var(--sub)"
+                    : remaining < (planned ?? Infinity) * 0.2
+                      ? "var(--red)"
+                      : remaining < (planned ?? Infinity) * 0.5
+                        ? "var(--amber)"
+                        : "var(--green)";
+              return `
+<div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.85rem 1rem;">
+  <div style="font-weight:700;font-size:.85rem;margin-bottom:.4rem;color:var(--text);">${m.name}</div>
+  <div style="font-size:1.3rem;font-weight:800;color:${remColor};line-height:1.1;">
+    ${remaining != null ? remaining.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"}
+    <span style="font-size:.65rem;font-weight:500;color:var(--sub);"> ${m.unit} in stock</span>
+  </div>
+  ${
+    lastPhase
+      ? `
+  <div style="display:flex;gap:.6rem;margin-top:.55rem;">
+    <div style="flex:1;background:rgba(255,255,255,.05);border-radius:7px;padding:.35rem .5rem;text-align:center;">
+      <div style="font-size:.62rem;color:var(--sub);margin-bottom:.1rem;">Used</div>
+      <div style="font-size:.82rem;font-weight:700;color:var(--text);">
+        ${consumed != null ? consumed.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"}
+        <span style="font-size:.6rem;color:var(--sub);"> ${m.unit}</span>
+      </div>
+    </div>
+    <div style="flex:1;background:rgba(255,255,255,.05);border-radius:7px;padding:.35rem .5rem;text-align:center;">
+      <div style="font-size:.62rem;color:var(--sub);margin-bottom:.1rem;">Planned</div>
+      <div style="font-size:.82rem;font-weight:700;color:var(--text);">
+        ${planned != null ? planned.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "—"}
+        <span style="font-size:.6rem;color:var(--sub);"> ${m.unit}</span>
+      </div>
+    </div>
+  </div>
+  <div style="font-size:.62rem;color:var(--sub);margin-top:.35rem;">${lastPhase.phase_name}</div>
+  `
+      : `<div style="font-size:.67rem;color:var(--sub);margin-top:.3rem;">No phase data</div>`
+  }
+</div>`;
+            })
+            .join("");
+        } catch (e) {
+          grid.innerHTML = `<div style="color:var(--red);font-size:.79rem;grid-column:1/-1;">Error: ${e.message}</div>`;
+        }
+      }
+
+      function switchInvTab(tab) {
+        document.getElementById("inv-pane-log").style.display =
+          tab === "log" ? "" : "none";
+        document.getElementById("inv-pane-history").style.display =
+          tab === "history" ? "" : "none";
+        document
+          .querySelectorAll(".inv-tab")
+          .forEach((b) => b.classList.remove("active-tab"));
+        document.getElementById("inv-tab-" + tab).classList.add("active-tab");
+        if (tab === "history") loadUsageHistory();
+      }
+
+      async function loadUsageHistory() {
+        const sel = document.getElementById("inv-hist-mat");
+        const out = document.getElementById("inv-history-output");
+        if (!sel || !out) return;
+        const name = sel.value;
+        if (!name) {
+          out.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;">Select a material above.</div>`;
+          return;
+        }
+        out.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;">Loading…</div>`;
+        try {
+          const mats = await api("GET", "/materials");
+          const mat = mats.find((m) => m.name === name);
+          if (!mat || !mat.history?.length) {
+            out.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;">No phases for ${name}.</div>`;
+            return;
+          }
+          out.innerHTML = mat.history
+            .map((ph) => {
+              const entries = ph.daily_usage || [];
+              const rows = entries.length
+                ? entries
+                    .slice()
+                    .reverse()
+                    .map(
+                      (e) => `
+<div style="display:flex;justify-content:space-between;padding:.22rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.74rem;">
+  <span style="color:var(--sub);">${e.date}</span>
+  <span>${e.quantity.toLocaleString()} ${mat.unit}</span>
+</div>`,
+                    )
+                    .join("")
+                : `<div class="sub" style="font-size:.74rem;padding:.5rem 0;">No usage logged yet.</div>`;
+              return `
+<div style="margin-bottom:.75rem;">
+  <div style="font-weight:700;font-size:.82rem;color:var(--accent);margin-bottom:.4rem;">${ph.phase_name}</div>
+  <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.45rem;">
+    <span style="font-size:.71rem;color:var(--sub);">Ordered: <b style="color:var(--text);">${ph.ordered_qty?.toLocaleString()}</b></span>
+    <span style="font-size:.71rem;color:var(--sub);">Used: <b style="color:var(--text);">${ph.consumed_qty?.toLocaleString()}</b></span>
+    <span style="font-size:.71rem;color:var(--sub);">Remaining: <b style="color:var(--green);">${ph.remaining_stock?.toLocaleString()}</b></span>
+  </div>
+  ${rows}
+</div>`;
+            })
+            .join("");
+        } catch (e) {
+          out.innerHTML = `<div style="color:var(--red);font-size:.79rem;">Error: ${e.message}</div>`;
+        }
+      }
+
+      // ─── In Transit ─────────────────────────────────────────────
+      async function loadInTransit() {
+        const out = document.getElementById("in-transit-output");
+        if (!out) return;
+        out.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;">Loading…</div>`;
+        try {
+          const headers = activeProject
+            ? { "X-Project-Id": activeProject.id }
+            : {};
+          const resp = await fetch("/api/pending-reorders?status=approved", {
+            headers,
+          });
+          const data = await resp.json();
+          const items = (data.items || []).filter(
+            (i) => i.status === "approved",
+          );
+          if (!items.length) {
+            out.innerHTML = `<div style="text-align:center;padding:1.4rem 0;">
+              <div style="font-size:1.8rem;margin-bottom:.4rem;">🏭</div>
+              <div style="font-size:.83rem;color:var(--sub);">No orders currently in transit.</div>
+            </div>`;
+            return;
+          }
+          out.innerHTML = items
+            .map(
+              (item) => `
+<div class="order-row" style="cursor:default;" id="transit-item-${item.id}">
+  <div class="order-icon">🚛</div>
+  <div class="order-main">
+    <div class="order-title">${item.material}</div>
+    <div class="order-meta">
+      <b>${item.reorder_qty?.toLocaleString()} ${item.unit || ""}</b>
+      &nbsp;·&nbsp; Approved ${item.approved_at ? new Date(item.approved_at).toLocaleDateString() : "—"}
+      ${item.depots_used?.length ? `&nbsp;·&nbsp; via ${item.depots_used.join(", ")}` : ""}
+    </div>
+  </div>
+  <button class="btn btn-ok" style="font-size:.75rem;padding:.3rem .75rem;flex-shrink:0;"
+    onclick="markArrived(${item.id}, this)">✓ Arrived</button>
+</div>`,
+            )
+            .join("");
+        } catch (e) {
+          out.innerHTML = `<div style="color:var(--red);font-size:.79rem;">Error: ${e.message}</div>`;
+        }
+      }
+
+      async function markArrived(itemId, btn) {
         btn.disabled = true;
-        btn.textContent = "Sourcing…";
-        const resultDiv = document.getElementById(
-          `pending-item-result-${itemId}`,
-        );
-        resultDiv.innerHTML = `<div class="sub" style="font-size:.74rem;margin-top:.5rem;">
-          🔄 Finding nearest depot &amp; routing…</div>`;
+        btn.textContent = "Adding…";
         try {
           const res = await api(
             "POST",
-            `/pending-reorders/approve/${itemId}`,
+            `/pending-reorders/arrived/${itemId}`,
             {},
           );
-          const sp = res.supply_plan || {};
-          const sum = sp.summary || {};
+          const row = document.getElementById(`transit-item-${itemId}`);
+          if (row) {
+            row.style.opacity = ".45";
+            row.style.pointerEvents = "none";
+            btn.textContent = "✓ Added";
+            btn.style.background = "var(--green)";
+            btn.style.color = "#0d0f18";
+          }
+          toast(
+            `${res.material}: ${res.qty_added} ${res.item?.unit || ""} added to inventory!`,
+            "ok",
+          );
+          loadInventoryOverview();
+          // also refresh materials so inventory tab stock bars update
+          loadMaterials().catch(() => {});
+          setTimeout(() => {
+            if (_activeTab === "reorder") loadInTransit();
+          }, 800);
+        } catch (e) {
+          toast("Error: " + e.message, "err");
+          btn.disabled = false;
+          btn.textContent = "✓ Arrived";
+        }
+      }
 
-          // Build success card
-          let routeHTML = "";
+      // ─── Order Modal ─────────────────────────────────────────────
+      let _modalMap = null;
+
+      function openOrderModal(itemId) {
+        _modalItemId = itemId;
+        _fetchedRoutePlan = null;
+        const item = _pendingItems.find((i) => i.id === itemId);
+        if (!item) return;
+
+        const isCrit = item.critical;
+        const hasSite = !!activeProject?.dest_lat;
+        const isManual = item.source === "manual-order";
+        const batchId = item.batch_id || null;
+
+        // Collect batch siblings (includes the representative item itself)
+        const batchItems = batchId
+          ? _pendingItems.filter(
+              (i) => i.batch_id === batchId && i.source === "manual-order",
+            )
+          : null;
+        const isBatch = batchItems && batchItems.length > 1;
+
+        const sourceLabel = isManual
+          ? "Manual Order"
+          : item.source === "batch-check"
+            ? "Batch Scan"
+            : "Daily Log";
+        const headerIcon = isManual ? "🛒" : isCrit ? "🚨" : "⚠️";
+        const titleText = isBatch
+          ? batchItems.map((b) => b.material).join(" + ")
+          : item.material;
+
+        // Stats vary by source
+        let statsHTML;
+        if (isManual) {
+          if (isBatch) {
+            // Multi-material combined order — show a row per item
+            const rows = batchItems
+              .map(
+                (b) => `
+<tr>
+  <td style="padding:.3rem .5rem;font-weight:600;">${b.material}</td>
+  <td style="padding:.3rem .5rem;">${b.planned_qty != null ? Number(b.planned_qty).toLocaleString() : "—"} ${b.unit || ""}</td>
+  <td style="padding:.3rem .5rem;color:var(--amber);">${b.buffer_pct != null ? Number(b.buffer_pct).toFixed(1) + "%" : "—"}</td>
+  <td style="padding:.3rem .5rem;color:var(--green);font-weight:700;">${b.reorder_qty != null ? Number(b.reorder_qty).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"} ${b.unit || ""}</td>
+</tr>`,
+              )
+              .join("");
+            statsHTML = `
+<div style="overflow:auto;margin-bottom:1rem;">
+  <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
+    <thead><tr style="color:var(--sub);font-size:.7rem;">
+      <th style="padding:.25rem .5rem;text-align:left;">Material</th>
+      <th style="padding:.25rem .5rem;text-align:left;">Planned</th>
+      <th style="padding:.25rem .5rem;text-align:left;">Buffer</th>
+      <th style="padding:.25rem .5rem;text-align:left;">Order Qty</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>
+<div style="padding:.4rem .75rem;background:rgba(79,142,247,.08);border-left:3px solid var(--accent);border-radius:var(--radius);font-size:.74rem;margin-bottom:.85rem;">
+  🚛 These ${batchItems.length} materials will be co-optimised onto the fewest trucks possible.
+</div>`;
+          } else {
+            statsHTML = `
+<div class="stats" style="margin-bottom:1rem;">
+  <div class="stat"><div class="stat-label">Planned Qty</div>
+    <div class="stat-value">${item.planned_qty != null ? Number(item.planned_qty).toLocaleString() : "—"} <small style="font-size:.55em;font-weight:400;">${item.unit || ""}</small></div></div>
+  <div class="stat"><div class="stat-label">Buffer</div>
+    <div class="stat-value" style="color:var(--amber);">${item.buffer_pct != null ? Number(item.buffer_pct).toFixed(1) + "%" : "—"}</div></div>
+  <div class="stat"><div class="stat-label">Recommended Order</div>
+    <div class="stat-value" style="color:var(--green);">${item.reorder_qty != null ? Number(item.reorder_qty).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"} <small style="font-size:.55em;font-weight:400;">${item.unit || ""}</small></div></div>
+</div>
+<div style="padding:.4rem .75rem;background:rgba(79,142,247,.08);border-left:3px solid var(--accent);border-radius:var(--radius);font-size:.74rem;margin-bottom:.85rem;">
+  Buffer adds <b style="color:var(--amber);">${item.buffer_pct != null ? Number(item.buffer_pct).toFixed(1) : "?"}%</b> — ordering
+  <b style="color:var(--green);">${item.reorder_qty != null ? Number(item.reorder_qty).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "?"} ${item.unit || ""}</b>
+  instead of your planned <b>${item.planned_qty != null ? Number(item.planned_qty).toLocaleString() : "?"} ${item.unit || ""}</b>.
+</div>`;
+          }
+        } else {
+          statsHTML = `
+<div class="stats" style="margin-bottom:1rem;">
+  <div class="stat"><div class="stat-label">Qty Needed</div>
+    <div class="stat-value">${item.reorder_qty != null ? item.reorder_qty.toLocaleString() : "—"} <small style="font-size:.55em;font-weight:400;">${item.unit || ""}</small></div></div>
+  <div class="stat"><div class="stat-label">Days Left</div>
+    <div class="stat-value" style="color:${isCrit ? "var(--red)" : "var(--amber)"};">${item.days_remaining != null ? item.days_remaining.toFixed(1) : "—"}</div></div>
+  <div class="stat"><div class="stat-label">Stockout</div>
+    <div class="stat-value" style="font-size:.78rem;">${item.stockout_date || "—"}</div></div>
+  <div class="stat"><div class="stat-label">EMA Rate</div>
+    <div class="stat-value" style="font-size:.78rem;">${item.ema_rate != null ? item.ema_rate.toFixed(2) : "—"}<small style="font-size:.55em;font-weight:400;"> ${item.unit || ""}/day</small></div></div>
+</div>`;
+        }
+
+        document.getElementById("order-modal-content").innerHTML = `
+<div style="margin-bottom:1.1rem;">
+  <div style="font-size:1.05rem;font-weight:800;color:var(--text);display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem;flex-wrap:wrap;">
+    ${headerIcon} ${titleText}
+    ${isCrit ? `<span class="crit-badge">Critical</span>` : ""}
+    ${isBatch ? `<span style="font-size:.68rem;font-weight:600;padding:.15rem .45rem;background:rgba(79,142,247,.15);color:var(--accent);border-radius:4px;">Combined</span>` : isManual ? `<span style="font-size:.68rem;font-weight:600;padding:.15rem .45rem;background:rgba(79,142,247,.15);color:var(--accent);border-radius:4px;">Manual</span>` : ""}
+  </div>
+  <div style="font-size:.73rem;color:var(--sub);">
+    ${item.timestamp ? new Date(item.timestamp).toLocaleString() : "—"}
+    &nbsp;·&nbsp; via ${sourceLabel}
+  </div>
+</div>
+
+${statsHTML}
+
+${
+  !hasSite
+    ? `<div style="padding:.5rem .8rem;background:rgba(251,191,36,.08);border-left:3px solid var(--amber);
+  border-radius:var(--radius);font-size:.76rem;margin-bottom:.9rem;">
+  ⚠ No project site set — go to Projects to add a destination before approving.
+</div>`
+    : ""
+}
+
+<div id="modal-route-output" style="margin-bottom:.85rem;"></div>
+
+<div style="display:flex;gap:.55rem;flex-wrap:wrap;align-items:center;">
+  ${hasSite ? `<button class="btn btn-ghost" id="modal-fetch-btn" onclick="modalFetchRoute()">📍 Fetch Optimal Route</button>` : ""}
+  <button class="btn btn-primary" id="modal-approve-btn" onclick="modalApprove()"
+    disabled style="opacity:.4;cursor:not-allowed;">✓ Approve &amp; Book</button>
+  <button class="btn btn-ghost" style="color:var(--red);" id="modal-reject-btn" onclick="modalReject()">✕ Reject</button>
+</div>
+<div id="modal-fetch-hint" style="font-size:.7rem;color:var(--sub);margin-top:.5rem;">
+  ${hasSite ? "Fetch the optimal route first to unlock approval." : ""}
+</div>`;
+
+        // destroy any old leaflet instance before showing
+        if (_modalMap) {
+          _modalMap.remove();
+          _modalMap = null;
+        }
+        document.getElementById("order-modal-overlay").classList.add("open");
+      }
+
+      function closeOrderModal() {
+        if (_modalMap) {
+          _modalMap.remove();
+          _modalMap = null;
+        }
+        document.getElementById("order-modal-overlay").classList.remove("open");
+        _modalItemId = null;
+        _fetchedRoutePlan = null;
+      }
+
+      // Close modal when clicking outside
+      document.addEventListener("click", (e) => {
+        const overlay = document.getElementById("order-modal-overlay");
+        if (e.target === overlay) closeOrderModal();
+      });
+
+      async function modalFetchRoute() {
+        const item = _pendingItems.find((i) => i.id === _modalItemId);
+        if (!item) return;
+        const fetchBtn = document.getElementById("modal-fetch-btn");
+        const routeOut = document.getElementById("modal-route-output");
+        const hint = document.getElementById("modal-fetch-hint");
+        fetchBtn.disabled = true;
+        fetchBtn.textContent = "Fetching…";
+        routeOut.innerHTML = `<div class="sub" style="font-size:.74rem;">🔄 Calculating optimal route from nearest suppliers…</div>`;
+
+        try {
+          let sp;
+          const batchId = item.batch_id || null;
+          const batchSiblings = batchId
+            ? _pendingItems.filter(
+                (i) => i.batch_id === batchId && i.source === "manual-order",
+              )
+            : null;
+          const isBatch = batchSiblings && batchSiblings.length > 1;
+
+          if (isBatch) {
+            // Combined route — one supply plan across all materials in the cart
+            const res = await api("POST", "/supply/route-combined", {
+              items: batchSiblings.map((s) => ({
+                material: s.material,
+                qty: s.reorder_qty,
+              })),
+              dest_lat: activeProject.dest_lat,
+              dest_lon: activeProject.dest_lon,
+              dest_name: activeProject.dest_name || "Construction Site",
+            });
+            sp = res.supply_plan || null;
+          } else if (item.source === "manual-order") {
+            // Single manual order — lightweight wrapper
+            const res = await api("POST", "/supply/route-only", {
+              material: item.material,
+              qty: item.reorder_qty,
+              dest_lat: activeProject.dest_lat,
+              dest_lon: activeProject.dest_lon,
+              dest_name: activeProject.dest_name || "Construction Site",
+            });
+            sp = res.supply_plan || null;
+          } else {
+            // Auto-reorder — uses phase history / EMA
+            const res = await api("POST", "/phase/auto-reorder-check", {
+              material: item.material,
+              dest_lat: activeProject.dest_lat,
+              dest_lon: activeProject.dest_lon,
+              dest_name: activeProject.dest_name || "Construction Site",
+            });
+            sp = res.supply_plan || null;
+          }
+
+          _fetchedRoutePlan = sp;
+          const sum = sp?.summary || {};
+
+          if (!sp || sp.error) {
+            routeOut.innerHTML = `<div style="font-size:.74rem;color:var(--sub);">Route unavailable${sp?.error ? ": " + sp.error : "."}</div>`;
+            fetchBtn.textContent = "📍 Retry Route";
+            fetchBtn.disabled = false;
+            return;
+          }
+
+          // ── Collect stops for minimap ──────────────────────────
+          const stops = [];
+          const dest = sp.destination || {};
+          if (dest.lat && dest.lon)
+            stops.push({
+              lat: dest.lat,
+              lon: dest.lon,
+              label: dest.name || "Site",
+              type: "dest",
+            });
+          (sp.picks || []).forEach((p) => {
+            if (p.lat && p.lon)
+              stops.push({
+                lat: p.lat,
+                lon: p.lon,
+                label: p.store_name || p.store_id || "Store",
+                type: "store",
+              });
+          });
           (sp.depot_plans || []).forEach((dp) => {
-            const depotName = dp.depot?.name || dp.depot || "Depot";
-            routeHTML += `<div style="font-size:.74rem;font-weight:600;color:var(--sub);margin-top:.45rem;">${depotName}</div>`;
+            const d = dp.depot;
+            if (d?.lat && d?.lon)
+              stops.push({
+                lat: d.lat,
+                lon: d.lon,
+                label: d.name || "Depot",
+                type: "depot",
+              });
+          });
+
+          // ── Render: minimap + route stats ──────────────────────
+          let routeHTML = `<div id="modal-minimap"></div>
+<div style="padding:.65rem .85rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-top:.55rem;">
+  <div style="font-weight:700;font-size:.78rem;color:var(--accent);margin-bottom:.45rem;">📦 Optimal Route</div>
+  <div class="stats" style="margin-bottom:.45rem;">
+    <div class="stat"><div class="stat-label">Trucks</div><div class="stat-value">${sum.total_trucks ?? "—"}</div></div>
+    <div class="stat"><div class="stat-label">Weight</div><div class="stat-value">${sum.total_kg?.toLocaleString() ?? "—"} kg</div></div>
+    <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${sum.total_km?.toLocaleString() ?? "—"} km</div></div>
+    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${sum.total_co2_kg?.toLocaleString() ?? "—"} kg</div></div>
+  </div>`;
+          (sp.depot_plans || []).forEach((dp) => {
+            const depotName = dp.depot?.name || "Depot";
+            routeHTML += `<div style="font-size:.72rem;font-weight:700;color:var(--sub);margin-top:.4rem;">${depotName}</div>`;
             (dp.assignments || []).forEach((a) => {
-              routeHTML += `<div style="font-size:.72rem;padding:.15rem 0;border-bottom:1px solid var(--border);">
+              routeHTML += `<div style="font-size:.7rem;padding:.18rem 0;border-bottom:1px solid rgba(255,255,255,.04);">
                 🚛 <b>${a.truck_id}</b> · ${a.load_kg?.toLocaleString() ?? "—"} kg · ${a.distance_km ?? "—"} km
                 <span style="color:var(--sub);">${(a.route || []).map((r) => r.name || r).join(" → ")}</span>
               </div>`;
             });
           });
+          routeHTML += `</div>`;
+          routeOut.innerHTML = routeHTML;
 
-          resultDiv.innerHTML = `
-<div style="margin-top:.6rem;padding:.65rem .85rem;background:var(--surface2);
-  border-radius:var(--radius);border:1px solid var(--border);">
-  <div style="font-weight:700;font-size:.78rem;color:var(--green);margin-bottom:.4rem;">
-    ✅ Order Approved &amp; Booked
-  </div>
-  <div class="stats" style="margin:.3rem 0;">
-    <div class="stat"><div class="stat-label">Trucks</div><div class="stat-value">${sum.total_trucks ?? "—"}</div></div>
-    <div class="stat"><div class="stat-label">Total kg</div><div class="stat-value">${sum.total_kg?.toLocaleString() ?? "—"}</div></div>
-    <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${sum.total_km?.toLocaleString() ?? "—"} km</div></div>
-    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${sum.total_co2_kg?.toLocaleString() ?? "—"} kg</div></div>
-  </div>
-  ${routeHTML}
-</div>`;
+          // ── Init Leaflet minimap ───────────────────────────────
+          if (_modalMap) {
+            _modalMap.remove();
+            _modalMap = null;
+          }
+          if (stops.length && typeof L !== "undefined") {
+            _modalMap = L.map("modal-minimap", {
+              zoomControl: true,
+              attributionControl: false,
+            });
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+              maxZoom: 15,
+            }).addTo(_modalMap);
+            const icons = {
+              dest: L.divIcon({
+                html: `<div style="background:#4f8ef7;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.5);">🏗</div>`,
+                iconSize: [24, 24],
+                className: "",
+              }),
+              store: L.divIcon({
+                html: `<div style="background:#34d399;color:#0d0f18;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 2px 6px rgba(0,0,0,.4);">🏪</div>`,
+                iconSize: [22, 22],
+                className: "",
+              }),
+              depot: L.divIcon({
+                html: `<div style="background:#fbbf24;color:#0d0f18;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 2px 6px rgba(0,0,0,.4);">🏭</div>`,
+                iconSize: [22, 22],
+                className: "",
+              }),
+            };
+            const latlngs = [];
+            stops.forEach((s) => {
+              const ll = [s.lat, s.lon];
+              latlngs.push(ll);
+              L.marker(ll, { icon: icons[s.type] || icons.store })
+                .addTo(_modalMap)
+                .bindPopup(`<b>${s.label}</b>`);
+            });
+            if (latlngs.length > 1) {
+              L.polyline(latlngs, {
+                color: "#4f8ef7",
+                weight: 2.5,
+                dashArray: "7 5",
+                opacity: 0.85,
+              }).addTo(_modalMap);
+              _modalMap.fitBounds(L.latLngBounds(latlngs), {
+                padding: [24, 24],
+              });
+            } else if (latlngs.length === 1) {
+              _modalMap.setView(latlngs[0], 11);
+            }
+          }
 
-          // Fade out the action buttons
-          btn
-            .closest("div[style*='display:flex']")
-            .querySelector("button:last-child").style.display = "none";
-          btn.textContent = "✓ Approved";
-          btn.style.background = "var(--green)";
-          btn.style.color = "#0d0f18";
-          btn.disabled = true;
-
-          // Update nav badge
-          refreshPendingBadge();
-          toast(`Reorder for ${res.item?.material} approved & booked!`, "ok");
+          // ── Unlock Approve button ──────────────────────────────
+          const approveBtn = document.getElementById("modal-approve-btn");
+          if (approveBtn) {
+            approveBtn.disabled = false;
+            approveBtn.style.opacity = "1";
+            approveBtn.style.cursor = "pointer";
+          }
+          if (hint)
+            hint.textContent =
+              "Route confirmed — you can now approve this order.";
+          fetchBtn.textContent = "↻ Refresh Route";
+          fetchBtn.disabled = false;
         } catch (e) {
-          resultDiv.innerHTML = `<div style="color:var(--red);font-size:.76rem;margin-top:.4rem;">Error: ${e.message}</div>`;
-          btn.disabled = false;
-          btn.textContent = "✓ Approve & Book";
+          routeOut.innerHTML = `<div style="color:var(--red);font-size:.74rem;">Error: ${e.message}</div>`;
+          fetchBtn.textContent = "📍 Fetch Optimal Route";
+          fetchBtn.disabled = false;
         }
       }
 
-      async function rejectPendingReorder(itemId, btn) {
-        if (!confirm("Reject this reorder request?")) return;
-        btn.disabled = true;
+      async function modalApprove() {
+        const approveBtn = document.getElementById("modal-approve-btn");
+        const rejectBtn = document.getElementById("modal-reject-btn");
+        const routeOut = document.getElementById("modal-route-output");
+        const fetchBtn = document.getElementById("modal-fetch-btn");
+        approveBtn.disabled = true;
+        approveBtn.textContent = "Booking…";
         try {
-          await api("POST", `/pending-reorders/reject/${itemId}`, {});
-          const card = document.getElementById(`pending-item-${itemId}`);
-          card.style.opacity = "0.4";
-          card.style.pointerEvents = "none";
-          const resultDiv = document.getElementById(
-            `pending-item-result-${itemId}`,
+          const res = await api(
+            "POST",
+            `/pending-reorders/approve/${_modalItemId}`,
+            {},
           );
-          resultDiv.innerHTML = `<div style="font-size:.74rem;color:var(--sub);margin-top:.4rem;">✕ Rejected</div>`;
+          const sp = res.supply_plan || {};
+          const sum = sp.summary || {};
+          const batchApproved = res.batch_approved || [];
+          const approvedCount = batchApproved.length || 1;
+
+          routeOut.innerHTML = `
+<div style="padding:.65rem .85rem;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);border-radius:var(--radius);margin-top:.4rem;">
+  <div style="font-weight:700;font-size:.8rem;color:var(--green);margin-bottom:.45rem;">
+    ✅ ${approvedCount > 1 ? approvedCount + " orders" : "Order"} Approved &amp; Booked — now In Transit
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Trucks</div><div class="stat-value">${sum.total_trucks ?? "—"}</div></div>
+    <div class="stat"><div class="stat-label">Weight</div><div class="stat-value">${sum.total_kg?.toLocaleString() ?? "—"} kg</div></div>
+    <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${sum.total_km?.toLocaleString() ?? "—"} km</div></div>
+    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${sum.total_co2_kg?.toLocaleString() ?? "—"} kg</div></div>
+  </div>
+</div>`;
+          approveBtn.textContent = "✓ Approved";
+          approveBtn.style.background = "var(--green)";
+          approveBtn.style.color = "#0d0f18";
+          if (rejectBtn) rejectBtn.style.display = "none";
+          if (fetchBtn) fetchBtn.style.display = "none";
+
+          // Remove batch card or individual row + clean _pendingItems
+          const item = _pendingItems.find((i) => i.id === _modalItemId);
+          const batchId = item?.batch_id || null;
+          if (batchId) {
+            // Remove all sibling items from state
+            _pendingItems = _pendingItems.filter((i) => i.batch_id !== batchId);
+            // Remove the merged batch DOM card
+            const batchCard = document.getElementById(
+              `pending-batch-${batchId}`,
+            );
+            if (batchCard) batchCard.remove();
+            // Also remove any individual DOM cards for these ids (defensive)
+            batchApproved.forEach((id) => {
+              const r = document.getElementById(`pending-item-${id}`);
+              if (r) r.remove();
+            });
+          } else {
+            const row = document.getElementById(`pending-item-${_modalItemId}`);
+            if (row) row.remove();
+            _pendingItems = _pendingItems.filter((i) => i.id !== _modalItemId);
+          }
+
           refreshPendingBadge();
-          toast("Reorder request rejected.", "warn");
+          const matLabel = batchId
+            ? item
+              ? `${batchApproved.length} combined orders`
+              : "Batch"
+            : res.item?.material || "Order";
+          toast(`${matLabel} approved — check In Transit!`, "ok");
+          loadInTransit();
+          setTimeout(closeOrderModal, 2200);
+        } catch (e) {
+          routeOut.innerHTML = `<div style="color:var(--red);font-size:.76rem;margin-top:.4rem;">Error: ${e.message}</div>`;
+          approveBtn.disabled = false;
+          approveBtn.textContent = "✓ Approve & Book";
+        }
+      }
+
+      async function modalReject() {
+        if (!confirm("Reject this order request?")) return;
+        const rejectBtn = document.getElementById("modal-reject-btn");
+        rejectBtn.disabled = true;
+        try {
+          await api("POST", `/pending-reorders/reject/${_modalItemId}`, {});
+          const row = document.getElementById(`pending-item-${_modalItemId}`);
+          if (row) row.remove();
+          _pendingItems = _pendingItems.filter((i) => i.id !== _modalItemId);
+          refreshPendingBadge();
+          toast("Order rejected.", "warn");
+          closeOrderModal();
         } catch (e) {
           toast("Error: " + e.message, "err");
-          btn.disabled = false;
+          rejectBtn.disabled = false;
         }
       }
 

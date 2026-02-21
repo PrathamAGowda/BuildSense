@@ -8,50 +8,24 @@
     "priority": 9,
     "history": [
       {
-        "phase_name": "Foundation",
-        "planned_qty": 300.0,
-        "ordered_qty": 318.0,
-        "consumed_qty": 285.0,
+        "phase_name": "F1",
+        "planned_qty": 400.0,
+        "ordered_qty": 424.0,
+        "consumed_qty": 105.0,
         "waste_pct": 0.0,
-        "remaining_stock": 33.0,
+        "remaining_stock": 319.0,
         "daily_usage": [
           {
             "date": "2026-02-21",
-            "quantity": 150.0
-          },
-          {
-            "date": "2026-02-21",
-            "quantity": 80.0
-          },
-          {
-            "date": "2026-02-21",
-            "quantity": 25.0
-          },
-          {
-            "date": "2026-02-21",
-            "quantity": 10.0
-          },
-          {
-            "date": "2026-02-21",
-            "quantity": 20.0
-          }
-        ]
-      },
-      {
-        "phase_name": "F2",
-        "planned_qty": 150.0,
-        "ordered_qty": 159.0,
-        "consumed_qty": 150.0,
-        "waste_pct": 0.0,
-        "remaining_stock": 9.0,
-        "daily_usage": [
-          {
-            "date": "2026-02-21",
-            "quantity": 100.0
+            "quantity": 50.0
           },
           {
             "date": "2026-02-22",
             "quantity": 50.0
+          },
+          {
+            "date": "2026-02-21",
+            "quantity": 5.0
           }
         ]
       }
@@ -66,21 +40,12 @@
     "priority": 7,
     "history": [
       {
-        "phase_name": "Foundation",
-        "planned_qty": 250.0,
-        "ordered_qty": 275.0,
+        "phase_name": "F1",
+        "planned_qty": 300.0,
+        "ordered_qty": 0.0,
         "consumed_qty": 0.0,
         "waste_pct": 0.0,
-        "remaining_stock": 275.0,
-        "daily_usage": []
-      },
-      {
-        "phase_name": "F",
-        "planned_qty": 150.0,
-        "ordered_qty": 165.0,
-        "consumed_qty": 0.0,
-        "waste_pct": 0.0,
-        "remaining_stock": 165.0,
+        "remaining_stock": 0.0,
         "daily_usage": []
       }
     ]
@@ -101,17 +66,7 @@
     "buffer_pct": 8.0,
     "weight_per_unit": 1000.0,
     "priority": 6,
-    "history": [
-      {
-        "phase_name": "F",
-        "planned_qty": 250.0,
-        "ordered_qty": 270.0,
-        "consumed_qty": 0.0,
-        "waste_pct": 0.0,
-        "remaining_stock": 270.0,
-        "daily_usage": []
-      }
-    ]
+    "history": []
   },
   "Aggregate": {
     "name": "Aggregate",

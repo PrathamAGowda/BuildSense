@@ -1,0 +1,21 @@
+[
+  {
+    "timestamp": "2026-02-21T04:07:25.143255Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 1991.53,
+    "days_remaining": 0.0,
+    "stockout_date": "2026-02-21",
+    "ema_rate": 134.2,
+    "critical": true,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "triggered",
+    "id": 1
+  }
+]

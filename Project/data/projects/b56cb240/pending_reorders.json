@@ -1,0 +1,16 @@
+[
+  {
+    "timestamp": "2026-02-21T04:07:25.143255Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 1991.53,
+    "days_remaining": 0.0,
+    "stockout_date": "2026-02-21",
+    "ema_rate": 134.2,
+    "critical": true,
+    "id": 1,
+    "status": "rejected",
+    "rejected_at": "2026-02-21T04:08:09.393844Z"
+  }
+]

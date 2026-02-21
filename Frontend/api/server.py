@@ -160,7 +160,7 @@ def initialize_phase():
     mat = mats[name]
     phase_name  = body.get("phase_name", "Unnamed Phase").strip()
     planned_qty = float(body["planned_qty"])
-    # Recommended order = planned × (1 + buffer/100)
+    # Recommended order = planned × (1 + buffer/100) — returned for display only
     ordered_qty = round(planned_qty * (1 + mat.buffer_pct / 100), 4)
 
     # Check for duplicate phase name on this material
@@ -171,10 +171,10 @@ def initialize_phase():
     record = PhaseRecord(
         phase_name=phase_name,
         planned_qty=planned_qty,
-        ordered_qty=ordered_qty,
+        ordered_qty=0.0,        # no inventory until a real order arrives
         consumed_qty=0.0,
         waste_pct=0.0,
-        remaining_stock=ordered_qty,
+        remaining_stock=0.0,    # no stock until order is received
     )
     mat.history.append(record)
     save_materials(mats, _pid())
@@ -183,9 +183,171 @@ def initialize_phase():
         "unit":        mat.unit,
         "phase_name":  phase_name,
         "planned_qty": planned_qty,
-        "ordered_qty": ordered_qty,
+        "buffer_pct":  mat.buffer_pct,
+        "ordered_qty": ordered_qty,   # recommended — not yet committed
         "phase_index": len(mat.history) - 1,
     }), 201
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Manual multi-material order cart → pending reorders                 #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.post("/api/phase/manual-order")
+def manual_order():
+    """
+    POST /api/phase/manual-order
+    Body: { "items": [{ "material": "Cement", "planned_qty": 200 }, ...] }
+
+    All items share a batch_id so they can be approved together with one
+    combined supply plan.  Does NOT touch ordered_qty / remaining_stock.
+    """
+    import uuid
+    from datetime import datetime as _dt
+    body  = request.json or {}
+    items = body.get("items", [])
+    if not items:
+        return jsonify({"error": "No items provided."}), 400
+
+    mats     = load_materials(_pid())
+    ts       = _dt.utcnow().isoformat() + "Z"
+    batch_id = str(uuid.uuid4())[:8]
+    results  = []
+    errors   = []
+
+    for item in items:
+        name        = str(item.get("material", "")).strip().title()
+        planned_qty = float(item.get("planned_qty", 0))
+        if not name or planned_qty <= 0:
+            errors.append({"material": name, "error": "Invalid qty"})
+            continue
+        if name not in mats:
+            errors.append({"material": name, "error": "Material not found"})
+            continue
+
+        mat             = mats[name]
+        recommended_qty = round(planned_qty * (1 + mat.buffer_pct / 100), 4)
+
+        pending_item = {
+            "timestamp":      ts,
+            "source":         "manual-order",
+            "batch_id":       batch_id,
+            "material":       name,
+            "unit":           mat.unit,
+            "planned_qty":    planned_qty,
+            "reorder_qty":    recommended_qty,
+            "buffer_pct":     mat.buffer_pct,
+            "days_remaining": None,
+            "stockout_date":  None,
+            "ema_rate":       None,
+            "critical":       False,
+        }
+        created = append_pending_reorder(pending_item, _pid())
+        results.append({
+            "material":         name,
+            "unit":             mat.unit,
+            "planned_qty":      planned_qty,
+            "buffer_pct":       mat.buffer_pct,
+            "recommended_qty":  recommended_qty,
+            "pending_id":       created.get("id"),
+            "batch_id":         batch_id,
+        })
+
+    return jsonify({"created": results, "errors": errors, "batch_id": batch_id}), 201
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Supply route planning without needing phase history                 #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.post("/api/supply/route-only")
+def supply_route_only():
+    """
+    POST /api/supply/route-only
+    Single-material convenience wrapper — delegates to route-combined.
+    Body: { "material": "Cement", "qty": 212, "dest_lat", "dest_lon", "dest_name" }
+    """
+    body      = request.json or {}
+    name      = str(body.get("material", "")).strip().title()
+    qty       = float(body.get("qty", 0))
+    dest_lat  = body.get("dest_lat")
+    dest_lon  = body.get("dest_lon")
+    dest_name = body.get("dest_name", "Construction Site")
+
+    if not name or qty <= 0 or dest_lat is None or dest_lon is None:
+        return jsonify({"error": "material, qty, dest_lat and dest_lon are required"}), 400
+
+    mats = load_materials(_pid())
+    if name not in mats:
+        return jsonify({"error": f"Material '{name}' not found"}), 404
+
+    mat = mats[name]
+    try:
+        supply_plan = plan_supply(
+            dest_lat     = float(dest_lat),
+            dest_lon     = float(dest_lon),
+            dest_name    = dest_name,
+            requirements = [{"material": name, "qty": qty, "unit_weight": mat.weight_per_unit}],
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"supply_plan": supply_plan, "material": name, "qty": qty})
+
+
+@app.post("/api/supply/route-combined")
+def supply_route_combined():
+    """
+    POST /api/supply/route-combined
+    Runs ONE combined supply plan for multiple materials — trucks are
+    shared across all materials.
+    Body: {
+      "items": [{ "material": "Cement", "qty": 212 }, { "material": "Sand", "qty": 530 }],
+      "dest_lat": 26.9124,
+      "dest_lon": 75.7873,
+      "dest_name": "Jaipur Site"
+    }
+    """
+    body      = request.json or {}
+    items     = body.get("items", [])
+    dest_lat  = body.get("dest_lat")
+    dest_lon  = body.get("dest_lon")
+    dest_name = body.get("dest_name", "Construction Site")
+
+    if not items:
+        return jsonify({"error": "items list is required"}), 400
+    if dest_lat is None or dest_lon is None:
+        return jsonify({"error": "dest_lat and dest_lon are required"}), 400
+
+    mats = load_materials(_pid())
+    requirements = []
+    errors = []
+    for item in items:
+        name = str(item.get("material", "")).strip().title()
+        qty  = float(item.get("qty", 0))
+        if name not in mats:
+            errors.append(f"Material '{name}' not found")
+            continue
+        requirements.append({
+            "material":    name,
+            "qty":         qty,
+            "unit_weight": mats[name].weight_per_unit,
+        })
+
+    if not requirements:
+        return jsonify({"error": "No valid materials", "details": errors}), 400
+
+    try:
+        supply_plan = plan_supply(
+            dest_lat     = float(dest_lat),
+            dest_lon     = float(dest_lon),
+            dest_name    = dest_name,
+            requirements = requirements,
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"supply_plan": supply_plan, "items": requirements, "errors": errors})
 
 
 # ─────────────────────────────────────────────────────────────────── #
@@ -254,11 +416,22 @@ def post_log_daily_usage():
     dest_lat  = body.get("dest_lat")
     dest_lon  = body.get("dest_lon")
     dest_name = body.get("dest_name", "Construction Site")
+
+    # Sum qty already on order (pending + approved) so the engine treats
+    # that stock as "effective remaining" and won't re-alert needlessly.
+    pending = load_pending_reorders(_pid())
+    on_order_qty = sum(
+        float(r.get("reorder_qty", 0))
+        for r in pending
+        if r.get("material") == name and r.get("status") in ("pending", "approved")
+    )
+
     auto_reorder = check_auto_reorder(
         mat, phase_index,
-        dest_lat  = float(dest_lat)  if dest_lat  is not None else None,
-        dest_lon  = float(dest_lon)  if dest_lon  is not None else None,
-        dest_name = dest_name,
+        dest_lat     = float(dest_lat)  if dest_lat  is not None else None,
+        dest_lon     = float(dest_lon)  if dest_lon  is not None else None,
+        dest_name    = dest_name,
+        on_order_qty = on_order_qty,
     )
 
     # ── Persist reorder log if triggered ─────────────────────────── #
@@ -348,12 +521,21 @@ def auto_reorder_check():
     dest_name   = body.get("dest_name", "Construction Site")
     horizon     = int(body.get("horizon_days", 7))
 
+    # Include on-order qty so the check accounts for already-ordered stock
+    pending = load_pending_reorders(_pid())
+    on_order_qty = sum(
+        float(r.get("reorder_qty", 0))
+        for r in pending
+        if r.get("material") == name and r.get("status") in ("pending", "approved")
+    )
+
     alert = check_auto_reorder(
         mat, phase_index,
-        dest_lat  = float(dest_lat)  if dest_lat  is not None else None,
-        dest_lon  = float(dest_lon)  if dest_lon  is not None else None,
-        dest_name = dest_name,
+        dest_lat     = float(dest_lat)  if dest_lat  is not None else None,
+        dest_lon     = float(dest_lon)  if dest_lon  is not None else None,
+        dest_name    = dest_name,
         horizon_days = horizon,
+        on_order_qty = on_order_qty,
     )
     return jsonify(alert)
 
@@ -382,12 +564,21 @@ def auto_reorder_all():
     dest_name = body.get("dest_name", "Construction Site")
     horizon   = int(body.get("horizon_days", 7))
 
+    # Build on-order map: material name → total qty pending/approved
+    pending = load_pending_reorders(_pid())
+    on_order_map: dict = {}
+    for r in pending:
+        if r.get("status") in ("pending", "approved"):
+            mat_name = r.get("material", "")
+            on_order_map[mat_name] = on_order_map.get(mat_name, 0.0) + float(r.get("reorder_qty", 0))
+
     alerts = check_all_materials(
         mats,
-        dest_lat  = float(dest_lat)  if dest_lat  is not None else None,
-        dest_lon  = float(dest_lon)  if dest_lon  is not None else None,
-        dest_name = dest_name,
+        dest_lat     = float(dest_lat)  if dest_lat  is not None else None,
+        dest_lon     = float(dest_lon)  if dest_lon  is not None else None,
+        dest_name    = dest_name,
         horizon_days = horizon,
+        on_order_map = on_order_map,
     )
 
     triggered = [a for a in alerts if a.get("triggered")]
@@ -558,29 +749,43 @@ def approve_pending_reorder(item_id: int):
     if not cfg.get("dest_lat"):
         return jsonify({"error": "Project site not configured."}), 400
 
-    items = load_pending_reorders(pid)
-    item  = next((i for i in items if i["id"] == item_id), None)
+    all_items = load_pending_reorders(pid)
+    item      = next((i for i in all_items if i["id"] == item_id), None)
     if not item:
         return jsonify({"error": f"Pending reorder id={item_id} not found."}), 404
     if item["status"] != "pending":
         return jsonify({"error": f"Item is already {item['status']}."}), 409
 
     mats = load_materials(pid)
-    mat  = mats.get(item["material"])
-    if not mat:
-        return jsonify({"error": f"Material '{item['material']}' not found."}), 404
+
+    # ── Determine batch siblings ──────────────────────────────────── #
+    batch_id = item.get("batch_id")
+    if batch_id:
+        # All pending items from the same batch cart checkout
+        batch_items = [
+            i for i in all_items
+            if i.get("batch_id") == batch_id and i["status"] == "pending"
+        ]
+    else:
+        batch_items = [item]
+
+    # ── Build combined requirements for one supply plan ───────────── #
+    requirements = []
+    for bi in batch_items:
+        mat = mats.get(bi["material"])
+        if mat:
+            requirements.append({
+                "material":    mat.name,
+                "qty":         bi["reorder_qty"],
+                "unit_weight": mat.weight_per_unit,
+            })
 
     supply_plan = None
     try:
-        requirements = [{
-            "material":    mat.name,
-            "qty":         item["reorder_qty"],
-            "unit_weight": mat.weight_per_unit,
-        }]
         supply_plan = plan_supply(
-            dest_lat  = cfg["dest_lat"],
-            dest_lon  = cfg["dest_lon"],
-            dest_name = cfg["dest_name"],
+            dest_lat     = cfg["dest_lat"],
+            dest_lon     = cfg["dest_lon"],
+            dest_name    = cfg["dest_name"],
             requirements = requirements,
         )
     except Exception as e:
@@ -588,36 +793,43 @@ def approve_pending_reorder(item_id: int):
 
     ts = _dt.utcnow().isoformat() + "Z"
     sp = supply_plan or {}
+    depots_used       = [d["depot"]["name"] if isinstance(d.get("depot"), dict) else str(d.get("depot", "")) for d in sp.get("depot_plans", [])]
+    total_distance_km = sp.get("total_distance_km")
+    total_co2_kg      = sp.get("total_co2_kg")
 
-    updated = update_pending_reorder(item_id, "approved", {
-        "approved_at":       ts,
-        "supply_plan":       supply_plan,
-        "dest_name":         cfg["dest_name"],
-        "depots_used":       [d["depot"]["name"] if isinstance(d.get("depot"), dict) else str(d.get("depot", "")) for d in sp.get("depot_plans", [])],
-        "total_distance_km": sp.get("total_distance_km"),
-        "total_co2_kg":      sp.get("total_co2_kg"),
-    }, pid)
-
-    append_reorder_log({
-        "timestamp":         ts,
-        "source":            "approved",
-        "material":          item["material"],
-        "unit":              item["unit"],
-        "reorder_qty":       item["reorder_qty"],
-        "days_remaining":    item.get("days_remaining"),
-        "stockout_date":     item.get("stockout_date"),
-        "ema_rate":          item.get("ema_rate"),
-        "critical":          item.get("critical", False),
-        "dest_name":         cfg["dest_name"],
-        "depots_used":       updated.get("depots_used", []),
-        "total_distance_km": updated.get("total_distance_km"),
-        "total_co2_kg":      updated.get("total_co2_kg"),
-        "status":            "approved",
-    }, pid)
+    # ── Approve all batch items ───────────────────────────────────── #
+    updated_items = []
+    for bi in batch_items:
+        u = update_pending_reorder(bi["id"], "approved", {
+            "approved_at":       ts,
+            "supply_plan":       supply_plan,
+            "dest_name":         cfg["dest_name"],
+            "depots_used":       depots_used,
+            "total_distance_km": total_distance_km,
+            "total_co2_kg":      total_co2_kg,
+        }, pid)
+        updated_items.append(u)
+        append_reorder_log({
+            "timestamp":         ts,
+            "source":            "approved",
+            "material":          bi["material"],
+            "unit":              bi["unit"],
+            "reorder_qty":       bi["reorder_qty"],
+            "days_remaining":    bi.get("days_remaining"),
+            "stockout_date":     bi.get("stockout_date"),
+            "ema_rate":          bi.get("ema_rate"),
+            "critical":          bi.get("critical", False),
+            "dest_name":         cfg["dest_name"],
+            "depots_used":       depots_used,
+            "total_distance_km": total_distance_km,
+            "total_co2_kg":      total_co2_kg,
+            "status":            "approved",
+        }, pid)
 
     return jsonify({
         "approved":      True,
-        "item":          updated,
+        "item":          updated_items[0] if updated_items else None,
+        "batch_approved": [u["id"] for u in updated_items],
         "supply_plan":   supply_plan,
         "pending_count": count_pending_reorders(pid),
     })
@@ -634,6 +846,52 @@ def reject_pending_reorder(item_id: int):
     except KeyError as e:
         return jsonify({"error": str(e)}), 404
     return jsonify({"rejected": True, "item": updated, "pending_count": count_pending_reorders(pid)})
+
+
+@app.post("/api/pending-reorders/arrived/<int:item_id>")
+def mark_arrived(item_id: int):
+    """
+    POST /api/pending-reorders/arrived/<id>
+    Marks an approved order as arrived and adds the reorder_qty
+    to the material's current phase (ordered_qty + remaining_stock).
+    """
+    from datetime import datetime as _dt
+    pid = _pid()
+    items = load_pending_reorders(pid)
+    item  = next((i for i in items if i["id"] == item_id), None)
+    if not item:
+        return jsonify({"error": f"Order id={item_id} not found."}), 404
+    if item["status"] != "approved":
+        return jsonify({"error": f"Order is '{item['status']}', not approved."}), 409
+
+    mats     = load_materials(pid)
+    mat_name = item["material"]
+    mat      = mats.get(mat_name)
+    if not mat or not mat.history:
+        return jsonify({"error": f"Material '{mat_name}' or its phases not found."}), 404
+
+    qty  = float(item.get("reorder_qty", 0))
+    phase = mat.history[-1]   # add to latest active phase
+    phase.ordered_qty    = round(phase.ordered_qty + qty, 4)
+    phase.remaining_stock = round(phase.remaining_stock + qty, 4)
+    save_materials(mats, pid)
+
+    ts = _dt.utcnow().isoformat() + "Z"
+    updated = update_pending_reorder(item_id, "arrived", {
+        "arrived_at": ts,
+        "added_to_phase": phase.phase_name,
+        "qty_added": qty,
+    }, pid)
+
+    return jsonify({
+        "arrived": True,
+        "item": updated,
+        "material": mat_name,
+        "phase": phase.phase_name,
+        "qty_added": qty,
+        "new_ordered_qty": phase.ordered_qty,
+        "new_remaining_stock": phase.remaining_stock,
+    })
 
 
 @app.get("/api/pending-reorders/count")

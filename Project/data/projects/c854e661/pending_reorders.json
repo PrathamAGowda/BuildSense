@@ -1,0 +1,391 @@
+[
+  {
+    "timestamp": "2026-02-21T03:03:44.629566Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 923.22,
+    "days_remaining": 0.9,
+    "stockout_date": "2026-02-21",
+    "ema_rate": 62.2113,
+    "critical": true,
+    "id": 3,
+    "status": "approved",
+    "approved_at": "2026-02-21T03:09:07.294856Z",
+    "supply_plan": {
+      "destination": {
+        "name": "Goa",
+        "lat": 15.3004543,
+        "lon": 74.0855134
+      },
+      "requirements": [
+        {
+          "material": "Cement",
+          "qty": 923.22,
+          "unit_weight": 50.0
+        }
+      ],
+      "shortfalls": [],
+      "picks": [
+        {
+          "store_id": "S50",
+          "store_name": "Goa Panaji Building Depot",
+          "lat": 15.4909,
+          "lon": 73.8278,
+          "material": "Cement",
+          "qty_units": 923.22,
+          "weight_kg": 46161.0,
+          "dist_to_dest_km": 34.8
+        }
+      ],
+      "depot_plans": [
+        {
+          "depot": {
+            "id": "DEP-PUN",
+            "name": "Pune Depot",
+            "lat": 18.5204,
+            "lon": 73.8567
+          },
+          "assignments": [
+            {
+              "truck_id": "PUN-T1",
+              "capacity_kg": 12000,
+              "load_kg": 46161.0,
+              "util_pct": 384.7,
+              "route": [
+                {
+                  "name": "Pune Depot",
+                  "lat": 18.5204,
+                  "lon": 73.8567
+                },
+                {
+                  "name": "Goa Panaji Building Depot",
+                  "lat": 15.4909,
+                  "lon": 73.8278
+                },
+                {
+                  "name": "Goa",
+                  "lat": 15.3004543,
+                  "lon": 74.0855134
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S50",
+                  "store_name": "Goa Panaji Building Depot",
+                  "lat": 15.4909,
+                  "lon": 73.8278,
+                  "materials": [
+                    {
+                      "material": "Cement",
+                      "qty": 923.22,
+                      "weight_kg": 46161.0
+                    }
+                  ],
+                  "weight_kg": 46161.0
+                }
+              ],
+              "distance_km": 708.57,
+              "co2_kg": 22.1
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_trucks": 1,
+        "total_kg": 46161.0,
+        "total_km": 708.57,
+        "total_co2_kg": 22.1,
+        "depots_used": 1,
+        "stores_sourced": 1,
+        "shortfalls": 0
+      }
+    },
+    "dest_name": "Goa",
+    "depots_used": [
+      "Pune Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null
+  },
+  {
+    "timestamp": "2026-02-21T03:03:00.752977Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 1340.42,
+    "days_remaining": 0.7,
+    "stockout_date": "2026-02-21",
+    "ema_rate": 90.325,
+    "critical": true,
+    "id": 2,
+    "status": "approved",
+    "approved_at": "2026-02-21T03:03:09.396202Z",
+    "supply_plan": {
+      "destination": {
+        "name": "Goa",
+        "lat": 15.3004543,
+        "lon": 74.0855134
+      },
+      "requirements": [
+        {
+          "material": "Cement",
+          "qty": 1340.42,
+          "unit_weight": 50.0
+        }
+      ],
+      "shortfalls": [],
+      "picks": [
+        {
+          "store_id": "S50",
+          "store_name": "Goa Panaji Building Depot",
+          "lat": 15.4909,
+          "lon": 73.8278,
+          "material": "Cement",
+          "qty_units": 1340.42,
+          "weight_kg": 67021.0,
+          "dist_to_dest_km": 34.8
+        }
+      ],
+      "depot_plans": [
+        {
+          "depot": {
+            "id": "DEP-PUN",
+            "name": "Pune Depot",
+            "lat": 18.5204,
+            "lon": 73.8567
+          },
+          "assignments": [
+            {
+              "truck_id": "PUN-T1",
+              "capacity_kg": 12000,
+              "load_kg": 67021.0,
+              "util_pct": 558.5,
+              "route": [
+                {
+                  "name": "Pune Depot",
+                  "lat": 18.5204,
+                  "lon": 73.8567
+                },
+                {
+                  "name": "Goa Panaji Building Depot",
+                  "lat": 15.4909,
+                  "lon": 73.8278
+                },
+                {
+                  "name": "Goa",
+                  "lat": 15.3004543,
+                  "lon": 74.0855134
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S50",
+                  "store_name": "Goa Panaji Building Depot",
+                  "lat": 15.4909,
+                  "lon": 73.8278,
+                  "materials": [
+                    {
+                      "material": "Cement",
+                      "qty": 1340.42,
+                      "weight_kg": 67021.0
+                    }
+                  ],
+                  "weight_kg": 67021.0
+                }
+              ],
+              "distance_km": 708.57,
+              "co2_kg": 15.22
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_trucks": 1,
+        "total_kg": 67021.0,
+        "total_km": 708.57,
+        "total_co2_kg": 15.22,
+        "depots_used": 1,
+        "stores_sourced": 1,
+        "shortfalls": 0
+      }
+    },
+    "dest_name": "Goa",
+    "depots_used": [
+      "Pune Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null
+  },
+  {
+    "timestamp": "2026-02-21T03:02:08.809332Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 1862.42,
+    "days_remaining": 0.7,
+    "stockout_date": "2026-02-21",
+    "ema_rate": 125.5,
+    "critical": true,
+    "id": 1,
+    "status": "approved",
+    "approved_at": "2026-02-21T03:02:25.892084Z",
+    "supply_plan": {
+      "destination": {
+        "name": "Goa",
+        "lat": 15.3004543,
+        "lon": 74.0855134
+      },
+      "requirements": [
+        {
+          "material": "Cement",
+          "qty": 1862.42,
+          "unit_weight": 50.0
+        }
+      ],
+      "shortfalls": [],
+      "picks": [
+        {
+          "store_id": "S50",
+          "store_name": "Goa Panaji Building Depot",
+          "lat": 15.4909,
+          "lon": 73.8278,
+          "material": "Cement",
+          "qty_units": 1500.0,
+          "weight_kg": 75000.0,
+          "dist_to_dest_km": 34.8
+        },
+        {
+          "store_id": "S49",
+          "store_name": "Mangalore Coastal Supplies",
+          "lat": 12.9141,
+          "lon": 74.856,
+          "material": "Cement",
+          "qty_units": 362.42,
+          "weight_kg": 18121.0,
+          "dist_to_dest_km": 278.1
+        }
+      ],
+      "depot_plans": [
+        {
+          "depot": {
+            "id": "DEP-PUN",
+            "name": "Pune Depot",
+            "lat": 18.5204,
+            "lon": 73.8567
+          },
+          "assignments": [
+            {
+              "truck_id": "PUN-T1",
+              "capacity_kg": 12000,
+              "load_kg": 75000.0,
+              "util_pct": 625.0,
+              "route": [
+                {
+                  "name": "Pune Depot",
+                  "lat": 18.5204,
+                  "lon": 73.8567
+                },
+                {
+                  "name": "Goa Panaji Building Depot",
+                  "lat": 15.4909,
+                  "lon": 73.8278
+                },
+                {
+                  "name": "Goa",
+                  "lat": 15.3004543,
+                  "lon": 74.0855134
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S50",
+                  "store_name": "Goa Panaji Building Depot",
+                  "lat": 15.4909,
+                  "lon": 73.8278,
+                  "materials": [
+                    {
+                      "material": "Cement",
+                      "qty": 1500.0,
+                      "weight_kg": 75000.0
+                    }
+                  ],
+                  "weight_kg": 75000.0
+                }
+              ],
+              "distance_km": 708.57,
+              "co2_kg": 13.6
+            }
+          ]
+        },
+        {
+          "depot": {
+            "id": "DEP-BLR",
+            "name": "Bangalore Central Depot",
+            "lat": 12.9716,
+            "lon": 77.5946
+          },
+          "assignments": [
+            {
+              "truck_id": "BLR-T1",
+              "capacity_kg": 16000,
+              "load_kg": 18121.0,
+              "util_pct": 113.3,
+              "route": [
+                {
+                  "name": "Bangalore Central Depot",
+                  "lat": 12.9716,
+                  "lon": 77.5946
+                },
+                {
+                  "name": "Mangalore Coastal Supplies",
+                  "lat": 12.9141,
+                  "lon": 74.856
+                },
+                {
+                  "name": "Goa",
+                  "lat": 15.3004543,
+                  "lon": 74.0855134
+                }
+              ],
+              "stops": [
+                {
+                  "store_id": "S49",
+                  "store_name": "Mangalore Coastal Supplies",
+                  "lat": 12.9141,
+                  "lon": 74.856,
+                  "materials": [
+                    {
+                      "material": "Cement",
+                      "qty": 362.42,
+                      "weight_kg": 18121.0
+                    }
+                  ],
+                  "weight_kg": 18121.0
+                }
+              ],
+              "distance_km": 871.75,
+              "co2_kg": 92.37
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "total_trucks": 2,
+        "total_kg": 93121.0,
+        "total_km": 1580.32,
+        "total_co2_kg": 105.97,
+        "depots_used": 2,
+        "stores_sourced": 2,
+        "shortfalls": 0
+      }
+    },
+    "dest_name": "Goa",
+    "depots_used": [
+      "Pune Depot",
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null
+  }
+]
