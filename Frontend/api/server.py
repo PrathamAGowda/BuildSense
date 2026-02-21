@@ -19,12 +19,9 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from data.store import (
-    load_materials, save_materials,
-    load_sites, save_sites,
-    add_custom_material,
+    load_materials, save_materials, add_custom_material,
     load_supply_network,
     load_reorder_logs, append_reorder_log, clear_reorder_logs,
-    load_project_config, save_project_config,
     load_pending_reorders, append_pending_reorder,
     update_pending_reorder, count_pending_reorders,
     list_projects, create_project, get_project, delete_project,
@@ -47,10 +44,6 @@ from engine.forecasting import (
 from engine.logistics_engine import (
     optimize_truck_loads,
     solve_routes,
-)
-from engine.rerouting_engine import (
-    analyze_route_with_conditions,
-    compare_routes,
 )
 from models.material import Material, PhaseRecord
 from models.delivery import DeliveryPoint
@@ -403,7 +396,6 @@ def auto_reorder_all():
     # Combined supply plan for all triggered materials at once
     combined_plan = None
     if triggered and dest_lat is not None and dest_lon is not None:
-        from engine.supply_engine import plan_supply
         requirements = [
             {
                 "material":    a["material"],
@@ -539,40 +531,6 @@ def delete_single_project(project_id: str):
 
 
 # ─────────────────────────────────────────────────────────────────── #
-#  Project Config — one-time site setup saved for the project lifetime #
-# ─────────────────────────────────────────────────────────────────── #
-
-@app.get("/api/project-config")
-def get_project_config():
-    """GET /api/project-config — returns current saved config or {}."""
-    cfg = load_project_config()
-    return jsonify(cfg)
-
-
-@app.post("/api/project-config")
-def post_project_config():
-    """
-    POST /api/project-config
-    Body: { name, dest_lat, dest_lon, dest_name }
-    Saves the project destination site for all auto-reorder operations.
-    """
-    from datetime import datetime as _dt
-    body = request.json or {}
-    required = ("dest_lat", "dest_lon", "dest_name")
-    for k in required:
-        if k not in body:
-            return jsonify({"error": f"Missing field: {k}"}), 400
-    cfg = save_project_config({
-        "project_name": body.get("name", "BuildSense Project"),
-        "dest_lat":     float(body["dest_lat"]),
-        "dest_lon":     float(body["dest_lon"]),
-        "dest_name":    body["dest_name"],
-        "created_at":   body.get("created_at", _dt.utcnow().isoformat() + "Z"),
-    })
-    return jsonify(cfg)
-
-
-# ─────────────────────────────────────────────────────────────────── #
 #  Pending Reorders — approval queue                                   #
 # ─────────────────────────────────────────────────────────────────── #
 
@@ -587,17 +545,16 @@ def get_pending_reorders():
     items = load_pending_reorders(_pid())
     if status_filter != "all":
         items = [i for i in items if i.get("status") == status_filter]
-    pending_count = sum(1 for i in load_pending_reorders(_pid()) if i.get("status") == "pending")
+    pending_count = sum(1 for i in items if i.get("status") == "pending")
     return jsonify({"items": items, "pending_count": pending_count})
 
 
 @app.post("/api/pending-reorders/approve/<int:item_id>")
 def approve_pending_reorder(item_id: int):
     from datetime import datetime as _dt
-    pid = _pid()
-    # Use project config from the active project if possible, else fall back to legacy
+    pid  = _pid()
     proj = get_project(pid) if pid else {}
-    cfg  = proj if proj.get("dest_lat") else load_project_config()
+    cfg  = proj
     if not cfg.get("dest_lat"):
         return jsonify({"error": "Project site not configured."}), 400
 
@@ -744,63 +701,11 @@ def complete_phase():
 
 
 # ─────────────────────────────────────────────────────────────────── #
-#  Delivery Planning                                                    #
-# ─────────────────────────────────────────────────────────────────── #
-
-@app.post("/api/delivery/plan")
-def delivery_plan():
-    body      = request.json
-    mats      = load_materials(_pid())
-    sites     = load_sites()
-    depot     = sites[0]
-    dpts      = sites[1:]
-
-    order_quantities = body.get("order_quantities", {})    # {material: qty}
-    trucks           = body.get("trucks", [])              # [{truck_id, capacity_kg}]
-    rain_expected    = bool(body.get("rain_expected", False))
-
-    if not trucks:
-        return jsonify({"error": "Provide at least one truck."}), 400
-    if not order_quantities:
-        return jsonify({"error": "Provide at least one material order quantity."}), 400
-
-    assignments = optimize_truck_loads(mats, order_quantities, trucks, rain_expected)
-    vehicle_cap = max(t["capacity_kg"] for t in trucks)
-    assignments = solve_routes(depot, dpts, assignments, vehicle_cap)
-
-    result = []
-    for a in assignments:
-        counts = Counter(a.materials_loaded)
-        result.append({
-            "truck_id":        a.truck_id,
-            "capacity_kg":     a.capacity_kg,
-            "used_kg":         a.used_capacity_kg,
-            "utilization_pct": a.utilization_pct,
-            "materials":       dict(counts),
-            "route":           a.route,
-            "distance_km":     a.distance_km,
-            "co2_kg":          a.co2_kg,
-        })
-    return jsonify(result)
-
-
-# ─────────────────────────────────────────────────────────────────── #
 #  Forecast — adaptive MA / ARIMA consumption forecast                 #
 # ─────────────────────────────────────────────────────────────────── #
 
 @app.post("/api/phase/forecast")
 def phase_forecast():
-    """
-    POST body:
-        material    : str
-        phase_index : int
-        horizon     : int  (optional, default 14)
-
-    Returns a ForecastResult serialised as JSON, including:
-        model, horizon, forecast (list of {date, qty}),
-        total_forecast, expected_excess, backtest_mape, note, warning,
-        regime (str: "MA" or "ARIMA"), thresholds used.
-    """
     body = request.json
     mats = load_materials(_pid())
     name = body.get("material", "").strip().title()
@@ -855,117 +760,28 @@ def phase_forecast():
 
 
 # ─────────────────────────────────────────────────────────────────── #
-#  Smart Re-Routing Endpoints                                         #
-# ─────────────────────────────────────────────────────────────────── #
-
-@app.post("/api/delivery/analyze-route")
-def analyze_route():
-    """
-    Analyze a single route with weather + traffic impact
-
-    POST body: {
-        "route_name": "Route A",
-        "waypoints": [[lat, lon], [lat, lon], ...],
-        "truck_load_kg": 2500,
-        "truck_capacity_kg": 5000
-    }
-    """
-    try:
-        body = request.json
-        route_name = body.get("route_name", "Route")
-        waypoints = [(float(lat), float(lon)) for lat, lon in body["waypoints"]]
-        load = float(body["truck_load_kg"])
-        capacity = float(body["truck_capacity_kg"])
-
-        if not waypoints or len(waypoints) < 2:
-            return jsonify({"error": "Provide at least 2 waypoints"}), 400
-
-        analysis = analyze_route_with_conditions(waypoints, route_name, load, capacity)
-        return jsonify(analysis)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-
-@app.post("/api/delivery/compare-routes")
-def compare_delivery_routes():
-    """
-    Compare multiple routes and recommend the best one
-
-    POST body: {
-        "routes": [
-            {"name": "Route A", "waypoints": [[lat, lon], ...]},
-            {"name": "Route B", "waypoints": [[lat, lon], ...]}
-        ],
-        "truck_load_kg": 2500,
-        "truck_capacity_kg": 5000
-    }
-    """
-    try:
-        body = request.json
-        routes = [
-            (r["name"], [(float(lat), float(lon)) for lat, lon in r["waypoints"]])
-            for r in body.get("routes", [])
-        ]
-        load = float(body["truck_load_kg"])
-        capacity = float(body["truck_capacity_kg"])
-
-        if len(routes) < 2:
-            return jsonify({"error": "Provide at least 2 routes to compare"}), 400
-
-        comparison = compare_routes(routes, load, capacity)
-        return jsonify(comparison)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-
-# ─────────────────────────────────────────────────────────────────── #
-#  Sites                                                               #
-# ─────────────────────────────────────────────────────────────────── #
-
-@app.get("/api/sites")
-def get_sites():
-    sites = load_sites()
-    return jsonify([s.to_dict() for s in sites])
-
-
-# ─────────────────────────────────────────────────────────────────── #
 #  Geocoding — resolve a place name to lat/lon via Nominatim           #
 # ─────────────────────────────────────────────────────────────────── #
 
 @app.get("/api/geocode")
 def geocode():
-    """
-    GET /api/geocode?q=Mumbai
-    Calls Nominatim (OpenStreetMap) — no API key required.
-    Returns up to 5 candidates: [{name, lat, lon, display_name}]
-    """
-    import urllib.request
-    import urllib.parse
-    import json as _json
-    import ssl
-    import certifi
+    import urllib.request, urllib.parse, json as _json, ssl, certifi
 
     query = request.args.get("q", "").strip()
     if not query:
         return jsonify({"error": "Provide ?q=<place name>"}), 400
 
-    params = urllib.parse.urlencode({
-        "q":              query,
-        "format":         "json",
-        "limit":          5,
-        "addressdetails": 0,
-    })
+    params = urllib.parse.urlencode({"q": query, "format": "json", "limit": 5, "addressdetails": 0})
     url = f"https://nominatim.openstreetmap.org/search?{params}"
     req = urllib.request.Request(url, headers={"User-Agent": "BuildSense/1.0"})
     ctx = ssl.create_default_context(cafile=certifi.where())
-
     try:
         with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:
             data = _json.loads(resp.read().decode())
     except Exception as e:
         return jsonify({"error": f"Geocoding failed: {e}"}), 502
 
-    results = [
+    return jsonify([
         {
             "name":         item.get("name") or item.get("display_name", "").split(",")[0],
             "display_name": item.get("display_name", ""),
@@ -973,8 +789,7 @@ def geocode():
             "lon":          float(item["lon"]),
         }
         for item in data
-    ]
-    return jsonify(results)
+    ])
 
 
 # ─────────────────────────────────────────────────────────────────── #

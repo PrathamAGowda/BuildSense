@@ -9,10 +9,8 @@ import os
 from typing import Dict, List
 
 from models.material import Material
-from models.delivery  import DeliveryPoint
 
 DATA_DIR              = os.path.dirname(__file__)
-SITES_FILE            = os.path.join(DATA_DIR, "sites.json")
 SUPPLY_NETWORK_FILE   = os.path.join(DATA_DIR, "supply_network.json")
 
 # ── Multi-project registry ──────────────────────────────────────── #
@@ -29,9 +27,7 @@ def _pfile(project_id: str, name: str) -> str:
 
 # Legacy single-project paths (kept for backward compat if needed)
 _DEFAULT_PID          = "default"
-MATERIALS_FILE        = os.path.join(DATA_DIR, "materials.json")
 REORDER_LOG_FILE      = os.path.join(DATA_DIR, "reorder_log.json")
-PROJECT_CONFIG_FILE   = os.path.join(DATA_DIR, "project_config.json")
 PENDING_REORDERS_FILE = os.path.join(DATA_DIR, "pending_reorders.json")
 
 
@@ -74,22 +70,8 @@ DEFAULT_MATERIALS: Dict[str, dict] = {
     },
 }
 
-DEFAULT_SITES: List[dict] = [
-    {"name": "Depot (Bangalore)",  "lat": 12.9716, "lon": 77.5946, "demand": 0},
-    {"name": "Chennai Site",       "lat": 13.0827, "lon": 80.2707, "demand": 40},
-    {"name": "Hyderabad Site",     "lat": 17.3850, "lon": 78.4867, "demand": 60},
-    {"name": "Mumbai Site",        "lat": 19.0760, "lon": 72.8777, "demand": 50},
-    {"name": "Delhi Site",         "lat": 28.6139, "lon": 77.2090, "demand": 70},
-    {"name": "Kolkata Site",       "lat": 22.5726, "lon": 88.3639, "demand": 30},
-    {"name": "Jaipur Site",        "lat": 26.9124, "lon": 75.7873, "demand": 45},
-    {"name": "Ahmedabad Site",     "lat": 23.0225, "lon": 72.5714, "demand": 35},
-    {"name": "Goa Site",           "lat": 15.2993, "lon": 74.1240, "demand": 25},
-    {"name": "Coimbatore Site",    "lat": 11.0168, "lon": 76.9558, "demand": 10},
-]
-
-
 # ─────────────────────────────────────────────────────────────────── #
-#  Materials                                                           #
+#  Supply Network                                                      #
 # ─────────────────────────────────────────────────────────────────── #
 
 def _build_default_materials() -> Dict[str, Material]:
@@ -107,7 +89,7 @@ def _build_default_materials() -> Dict[str, Material]:
 
 
 def load_materials(project_id: str = None) -> Dict[str, Material]:
-    path = _pfile(project_id, "materials.json") if project_id else MATERIALS_FILE
+    path = _pfile(project_id, "materials.json") if project_id else os.path.join(DATA_DIR, "materials.json")
     if not os.path.exists(path):
         mats = _build_default_materials()
         save_materials(mats, project_id)
@@ -118,7 +100,7 @@ def load_materials(project_id: str = None) -> Dict[str, Material]:
 
 
 def save_materials(materials: Dict[str, Material], project_id: str = None) -> None:
-    path = _pfile(project_id, "materials.json") if project_id else MATERIALS_FILE
+    path = _pfile(project_id, "materials.json") if project_id else os.path.join(DATA_DIR, "materials.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     payload = {name: mat.to_dict() for name, mat in materials.items()}
     with open(path, "w") as fh:
@@ -148,26 +130,6 @@ def add_custom_material(
     materials[key] = mat
     save_materials(materials, project_id)
     return mat
-
-
-# ─────────────────────────────────────────────────────────────────── #
-#  Delivery Sites                                                      #
-# ─────────────────────────────────────────────────────────────────── #
-
-def load_sites() -> List[DeliveryPoint]:
-    if not os.path.exists(SITES_FILE):
-        sites = [DeliveryPoint.from_dict(d) for d in DEFAULT_SITES]
-        save_sites(sites)
-        return sites
-    with open(SITES_FILE, "r") as fh:
-        raw: list = json.load(fh)
-    return [DeliveryPoint.from_dict(d) for d in raw]
-
-
-def save_sites(sites: List[DeliveryPoint]) -> None:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(SITES_FILE, "w") as fh:
-        json.dump([s.to_dict() for s in sites], fh, indent=2)
 
 
 # ─────────────────────────────────────────────────────────────────── #
@@ -270,29 +232,6 @@ def delete_project(project_id: str) -> bool:
         return False
     _save_projects_raw(new)
     return True
-
-# ─────────────────────────────────────────────────────────────────── #
-#  Project Site Config — legacy single-project shim                   #
-#  (still used by server endpoints that haven't migrated yet)          #
-# ─────────────────────────────────────────────────────────────────── #
-
-def load_project_config() -> dict:
-    if not os.path.exists(PROJECT_CONFIG_FILE):
-        return {}
-    with open(PROJECT_CONFIG_FILE, "r", encoding="utf-8") as fh:
-        try:
-            return json.load(fh)
-        except json.JSONDecodeError:
-            return {}
-
-def save_project_config(config: dict) -> dict:
-    existing = load_project_config()
-    existing.update(config)
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(PROJECT_CONFIG_FILE, "w", encoding="utf-8") as fh:
-        json.dump(existing, fh, indent=2)
-    return existing
-
 
 # ─────────────────────────────────────────────────────────────────── #
 #  Pending Reorders queue  (project-aware)                             #
