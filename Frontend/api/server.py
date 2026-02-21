@@ -22,7 +22,14 @@ from data.store import (
     load_materials, save_materials,
     load_sites, save_sites,
     add_custom_material,
+    load_supply_network,
+    load_reorder_logs, append_reorder_log, clear_reorder_logs,
+    load_project_config, save_project_config,
+    load_pending_reorders, append_pending_reorder,
+    update_pending_reorder, count_pending_reorders,
 )
+from engine.supply_engine import plan_supply
+from engine.auto_reorder_engine import check_auto_reorder, check_all_materials
 from engine.material_engine import (
     recommend_order_qty,
     record_phase,
@@ -247,6 +254,53 @@ def post_log_daily_usage():
         return jsonify({"error": str(e)}), 400
     save_materials(mats)
     trend = get_usage_trend(mat, phase_index, days=7)
+
+    # ── Auto-reorder: run EMA prediction on every log ──────────── #
+    dest_lat  = body.get("dest_lat")
+    dest_lon  = body.get("dest_lon")
+    dest_name = body.get("dest_name", "Construction Site")
+    auto_reorder = check_auto_reorder(
+        mat, phase_index,
+        dest_lat  = float(dest_lat)  if dest_lat  is not None else None,
+        dest_lon  = float(dest_lon)  if dest_lon  is not None else None,
+        dest_name = dest_name,
+    )
+
+    # ── Persist reorder log if triggered ─────────────────────────── #
+    if auto_reorder.get("triggered"):
+        from datetime import datetime as _dt
+        pred = auto_reorder.get("prediction", {})
+        sp   = auto_reorder.get("supply_plan") or {}
+        log_entry = {
+            "timestamp":      _dt.utcnow().isoformat() + "Z",
+            "source":         "daily-log",
+            "material":       auto_reorder["material"],
+            "unit":           auto_reorder["unit"],
+            "reorder_qty":    auto_reorder["reorder_qty"],
+            "days_remaining": pred.get("days_remaining"),
+            "stockout_date":  pred.get("stockout_date"),
+            "ema_rate":       pred.get("ema_rate"),
+            "critical":       auto_reorder.get("critical", False),
+            "dest_name":      dest_name,
+            "depots_used":    [d["depot"]["name"] if isinstance(d.get("depot"), dict) else str(d.get("depot","")) for d in sp.get("depot_plans", [])],
+            "total_distance_km": sp.get("total_distance_km"),
+            "total_co2_kg":      sp.get("total_co2_kg"),
+            "status":         "triggered",
+        }
+        append_reorder_log(log_entry)
+        # Push to pending approval queue (deduplicates by material)
+        append_pending_reorder({
+            "timestamp":      log_entry["timestamp"],
+            "source":         "daily-log",
+            "material":       log_entry["material"],
+            "unit":           log_entry["unit"],
+            "reorder_qty":    log_entry["reorder_qty"],
+            "days_remaining": log_entry["days_remaining"],
+            "stockout_date":  log_entry["stockout_date"],
+            "ema_rate":       log_entry["ema_rate"],
+            "critical":       log_entry["critical"],
+        })
+
     return jsonify({
         "material":               name,
         "phase_name":             phase.phase_name,
@@ -261,7 +315,339 @@ def post_log_daily_usage():
         "active_days":            trend["active_days"],
         "calendar_days":          trend["calendar_days"],
         "days_remaining_est":     trend["days_remaining_est"],
+        "auto_reorder":           auto_reorder,
     })
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Auto-Reorder — intelligent stockout prediction + supply planning    #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.post("/api/phase/auto-reorder-check")
+def auto_reorder_check():
+    """
+    POST /api/phase/auto-reorder-check
+    Body:
+    {
+      "material":    "Cement",
+      "phase_index": -1,          // optional, defaults to latest phase
+      "dest_lat":    26.9124,     // optional — triggers supply planning if given
+      "dest_lon":    75.7873,
+      "dest_name":   "Jaipur Site",
+      "horizon_days": 7           // optional, default 7
+    }
+
+    Runs EMA-based stockout prediction. If triggered, automatically
+    sources the reorder quantity from the supply network via Clarke-Wright VRP.
+    """
+    body = request.json or {}
+    mats = load_materials()
+    name = body.get("material", "").strip().title()
+    if name not in mats:
+        return jsonify({"error": f"Material '{name}' not found."}), 404
+
+    mat         = mats[name]
+    phase_index = int(body.get("phase_index", len(mat.history) - 1))
+    dest_lat    = body.get("dest_lat")
+    dest_lon    = body.get("dest_lon")
+    dest_name   = body.get("dest_name", "Construction Site")
+    horizon     = int(body.get("horizon_days", 7))
+
+    alert = check_auto_reorder(
+        mat, phase_index,
+        dest_lat  = float(dest_lat)  if dest_lat  is not None else None,
+        dest_lon  = float(dest_lon)  if dest_lon  is not None else None,
+        dest_name = dest_name,
+        horizon_days = horizon,
+    )
+    return jsonify(alert)
+
+
+@app.post("/api/phase/auto-reorder-all")
+def auto_reorder_all():
+    """
+    POST /api/phase/auto-reorder-all
+    Body:
+    {
+      "dest_lat":    26.9124,   // optional
+      "dest_lon":    75.7873,
+      "dest_name":   "Jaipur Site",
+      "horizon_days": 7
+    }
+
+    Runs auto-reorder check across ALL materials (latest phase).
+    Returns alerts sorted: critical → triggered → ok.
+    Supply planning is done per-material and merged into a combined
+    multi-material supply plan for the triggered ones.
+    """
+    body      = request.json or {}
+    mats      = load_materials()
+    dest_lat  = body.get("dest_lat")
+    dest_lon  = body.get("dest_lon")
+    dest_name = body.get("dest_name", "Construction Site")
+    horizon   = int(body.get("horizon_days", 7))
+
+    alerts = check_all_materials(
+        mats,
+        dest_lat  = float(dest_lat)  if dest_lat  is not None else None,
+        dest_lon  = float(dest_lon)  if dest_lon  is not None else None,
+        dest_name = dest_name,
+        horizon_days = horizon,
+    )
+
+    triggered = [a for a in alerts if a.get("triggered")]
+    critical  = [a for a in alerts if a.get("critical")]
+
+    # Combined supply plan for all triggered materials at once
+    combined_plan = None
+    if triggered and dest_lat is not None and dest_lon is not None:
+        from engine.supply_engine import plan_supply
+        requirements = [
+            {
+                "material":    a["material"],
+                "qty":         a["reorder_qty"],
+                "unit_weight": mats[a["material"]].weight_per_unit,
+            }
+            for a in triggered
+            if a["reorder_qty"] > 0 and a["material"] in mats
+        ]
+        if requirements:
+            try:
+                combined_plan = plan_supply(
+                    dest_lat  = float(dest_lat),
+                    dest_lon  = float(dest_lon),
+                    dest_name = dest_name,
+                    requirements = requirements,
+                )
+            except Exception as e:
+                combined_plan = {"error": str(e)}
+
+    # ── Persist one log entry per triggered material ──────────────── #
+    if triggered:
+        from datetime import datetime as _dt
+        ts = _dt.utcnow().isoformat() + "Z"
+        cp = combined_plan or {}
+        for a in triggered:
+            pred = a.get("prediction", {})
+            append_reorder_log({
+                "timestamp":         ts,
+                "source":            "batch-check",
+                "material":          a["material"],
+                "unit":              a["unit"],
+                "reorder_qty":       a["reorder_qty"],
+                "days_remaining":    pred.get("days_remaining"),
+                "stockout_date":     pred.get("stockout_date"),
+                "ema_rate":          pred.get("ema_rate"),
+                "critical":          a.get("critical", False),
+                "dest_name":         dest_name,
+                "depots_used":       [d["depot"]["name"] if isinstance(d.get("depot"), dict) else str(d.get("depot","")) for d in cp.get("depot_plans", [])],
+                "total_distance_km": cp.get("total_distance_km"),
+                "total_co2_kg":      cp.get("total_co2_kg"),
+                "status":            "triggered",
+            })
+            # Push to pending approval queue (deduplicates by material)
+            append_pending_reorder({
+                "timestamp":      ts,
+                "source":         "batch-check",
+                "material":       a["material"],
+                "unit":           a["unit"],
+                "reorder_qty":    a["reorder_qty"],
+                "days_remaining": pred.get("days_remaining"),
+                "stockout_date":  pred.get("stockout_date"),
+                "ema_rate":       pred.get("ema_rate"),
+                "critical":       a.get("critical", False),
+            })
+
+    return jsonify({
+        "alerts":         alerts,
+        "triggered_count": len(triggered),
+        "critical_count":  len(critical),
+        "combined_supply_plan": combined_plan,
+    })
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Reorder Transaction Logs                                            #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.get("/api/reorder-logs")
+def get_reorder_logs():
+    """
+    GET /api/reorder-logs
+    Returns all persisted auto-reorder events, newest first.
+    Optional query param: ?limit=N (default 100).
+    """
+    limit = int(request.args.get("limit", 100))
+    logs  = load_reorder_logs()
+    return jsonify({"logs": logs[:limit], "total": len(logs)})
+
+
+@app.delete("/api/reorder-logs")
+def delete_reorder_logs():
+    """
+    DELETE /api/reorder-logs
+    Clears all reorder log entries (irreversible).
+    """
+    clear_reorder_logs()
+    return jsonify({"cleared": True})
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Project Config — one-time site setup saved for the project lifetime #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.get("/api/project-config")
+def get_project_config():
+    """GET /api/project-config — returns current saved config or {}."""
+    cfg = load_project_config()
+    return jsonify(cfg)
+
+
+@app.post("/api/project-config")
+def post_project_config():
+    """
+    POST /api/project-config
+    Body: { name, dest_lat, dest_lon, dest_name }
+    Saves the project destination site for all auto-reorder operations.
+    """
+    from datetime import datetime as _dt
+    body = request.json or {}
+    required = ("dest_lat", "dest_lon", "dest_name")
+    for k in required:
+        if k not in body:
+            return jsonify({"error": f"Missing field: {k}"}), 400
+    cfg = save_project_config({
+        "project_name": body.get("name", "BuildSense Project"),
+        "dest_lat":     float(body["dest_lat"]),
+        "dest_lon":     float(body["dest_lon"]),
+        "dest_name":    body["dest_name"],
+        "created_at":   body.get("created_at", _dt.utcnow().isoformat() + "Z"),
+    })
+    return jsonify(cfg)
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Pending Reorders — approval queue                                   #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.get("/api/pending-reorders")
+def get_pending_reorders():
+    """
+    GET /api/pending-reorders
+    Returns all pending reorder items.
+    Query: ?status=pending|approved|rejected|all (default: all)
+    """
+    status_filter = request.args.get("status", "all")
+    items = load_pending_reorders()
+    if status_filter != "all":
+        items = [i for i in items if i.get("status") == status_filter]
+    pending_count = sum(1 for i in load_pending_reorders() if i.get("status") == "pending")
+    return jsonify({"items": items, "pending_count": pending_count})
+
+
+@app.post("/api/pending-reorders/approve/<int:item_id>")
+def approve_pending_reorder(item_id: int):
+    """
+    POST /api/pending-reorders/approve/<id>
+    Approves the pending reorder: auto-sources from supply network
+    using the saved project site location, then marks as approved
+    and writes a completed reorder log entry.
+    """
+    from datetime import datetime as _dt
+    cfg = load_project_config()
+    if not cfg.get("dest_lat"):
+        return jsonify({"error": "Project site not configured. Set it in Project Setup first."}), 400
+
+    items = load_pending_reorders()
+    item  = next((i for i in items if i["id"] == item_id), None)
+    if not item:
+        return jsonify({"error": f"Pending reorder id={item_id} not found."}), 404
+    if item["status"] != "pending":
+        return jsonify({"error": f"Item is already {item['status']}."}), 409
+
+    mats = load_materials()
+    mat  = mats.get(item["material"])
+    if not mat:
+        return jsonify({"error": f"Material '{item['material']}' not found."}), 404
+
+    # Source from supply network
+    supply_plan = None
+    try:
+        requirements = [{
+            "material":    mat.name,
+            "qty":         item["reorder_qty"],
+            "unit_weight": mat.weight_per_unit,
+        }]
+        supply_plan = plan_supply(
+            dest_lat  = cfg["dest_lat"],
+            dest_lon  = cfg["dest_lon"],
+            dest_name = cfg["dest_name"],
+            requirements = requirements,
+        )
+    except Exception as e:
+        supply_plan = {"error": str(e)}
+
+    ts = _dt.utcnow().isoformat() + "Z"
+    sp = supply_plan or {}
+
+    # Mark approved
+    updated = update_pending_reorder(item_id, "approved", {
+        "approved_at":       ts,
+        "supply_plan":       supply_plan,
+        "dest_name":         cfg["dest_name"],
+        "depots_used":       [d["depot"]["name"] if isinstance(d.get("depot"), dict) else str(d.get("depot", "")) for d in sp.get("depot_plans", [])],
+        "total_distance_km": sp.get("total_distance_km"),
+        "total_co2_kg":      sp.get("total_co2_kg"),
+    })
+
+    # Write to permanent reorder log
+    append_reorder_log({
+        "timestamp":         ts,
+        "source":            "approved",
+        "material":          item["material"],
+        "unit":              item["unit"],
+        "reorder_qty":       item["reorder_qty"],
+        "days_remaining":    item.get("days_remaining"),
+        "stockout_date":     item.get("stockout_date"),
+        "ema_rate":          item.get("ema_rate"),
+        "critical":          item.get("critical", False),
+        "dest_name":         cfg["dest_name"],
+        "depots_used":       updated.get("depots_used", []),
+        "total_distance_km": updated.get("total_distance_km"),
+        "total_co2_kg":      updated.get("total_co2_kg"),
+        "status":            "approved",
+    })
+
+    pending_count = count_pending_reorders()
+    return jsonify({
+        "approved":     True,
+        "item":         updated,
+        "supply_plan":  supply_plan,
+        "pending_count": pending_count,
+    })
+
+
+@app.post("/api/pending-reorders/reject/<int:item_id>")
+def reject_pending_reorder(item_id: int):
+    """
+    POST /api/pending-reorders/reject/<id>
+    Rejects the pending reorder item.
+    """
+    from datetime import datetime as _dt
+    try:
+        updated = update_pending_reorder(item_id, "rejected", {
+            "rejected_at": _dt.utcnow().isoformat() + "Z",
+        })
+    except KeyError as e:
+        return jsonify({"error": str(e)}), 404
+    pending_count = count_pending_reorders()
+    return jsonify({"rejected": True, "item": updated, "pending_count": pending_count})
+
+
+@app.get("/api/pending-reorders/count")
+def get_pending_count():
+    """GET /api/pending-reorders/count — lightweight badge check."""
+    return jsonify({"pending_count": count_pending_reorders()})
 
 
 # ─────────────────────────────────────────────────────────────────── #
@@ -647,8 +1033,75 @@ def delivery_plan_custom():
 
 
 # ─────────────────────────────────────────────────────────────────── #
+#  Supply Network — destination-only auto-sourcing                     #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.get("/api/supply/network")
+def supply_network_info():
+    """Return counts of depots and stores for UI info cards."""
+    net = load_supply_network()
+    return jsonify({
+        "depots": len(net.get("depots", [])),
+        "stores": len(net.get("stores", [])),
+        "depot_names": [d["name"] for d in net.get("depots", [])],
+    })
+
+
+@app.post("/api/supply/plan")
+def supply_plan():
+    """
+    POST /api/supply/plan
+    Body:
+    {
+      "destination": {"name": "Jaipur Site", "lat": 26.9124, "lon": 75.7873},
+      "requirements": [
+        {"material": "Cement", "qty": 1000},
+        {"material": "Steel",  "qty": 200}
+      ]
+    }
+    Automatically sources all materials from nearest stores,
+    routes trucks from nearest depots via Clarke-Wright VRP.
+    """
+    body = request.json or {}
+    dest = body.get("destination", {})
+    reqs_raw = body.get("requirements", [])
+
+    if not dest or "lat" not in dest or "lon" not in dest:
+        return jsonify({"error": "destination with {name, lat, lon} is required"}), 400
+    if not reqs_raw:
+        return jsonify({"error": "requirements list is required"}), 400
+
+    mats = load_materials()
+
+    # Enrich requirements with unit_weight from material database
+    requirements = []
+    for r in reqs_raw:
+        mat_name = r.get("material", "").strip().title()
+        qty = float(r.get("qty", 0))
+        if qty <= 0:
+            continue
+        unit_weight = mats[mat_name].weight_per_unit if mat_name in mats else 1.0
+        requirements.append({
+            "material":    mat_name,
+            "qty":         qty,
+            "unit_weight": unit_weight,
+        })
+
+    if not requirements:
+        return jsonify({"error": "No valid requirements with qty > 0"}), 400
+
+    result = plan_supply(
+        dest_lat=float(dest["lat"]),
+        dest_lon=float(dest["lon"]),
+        dest_name=dest.get("name", "Destination"),
+        requirements=requirements,
+    )
+    return jsonify(result)
+
+
+# ─────────────────────────────────────────────────────────────────── #
 #  Run                                                                 #
 # ─────────────────────────────────────────────────────────────────── #
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    app.run(debug=False, port=5001)

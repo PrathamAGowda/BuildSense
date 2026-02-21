@@ -1,0 +1,488 @@
+{
+  "depots": [
+    {
+      "id": "DEP-BLR",
+      "name": "Bangalore Central Depot",
+      "lat": 12.9716,
+      "lon": 77.5946,
+      "trucks": [
+        { "id": "BLR-T1", "cap": 16000 },
+        { "id": "BLR-T2", "cap": 12000 },
+        { "id": "BLR-T3", "cap": 10000 }
+      ]
+    },
+    {
+      "id": "DEP-MUM",
+      "name": "Mumbai West Depot",
+      "lat": 19.076,
+      "lon": 72.8777,
+      "trucks": [
+        { "id": "MUM-T1", "cap": 20000 },
+        { "id": "MUM-T2", "cap": 14000 }
+      ]
+    },
+    {
+      "id": "DEP-DEL",
+      "name": "Delhi North Depot",
+      "lat": 28.6139,
+      "lon": 77.209,
+      "trucks": [
+        { "id": "DEL-T1", "cap": 18000 },
+        { "id": "DEL-T2", "cap": "16000" },
+        { "id": "DEL-T3", "cap": 12000 }
+      ]
+    },
+    {
+      "id": "DEP-HYD",
+      "name": "Hyderabad Depot",
+      "lat": 17.385,
+      "lon": 78.4867,
+      "trucks": [
+        { "id": "HYD-T1", "cap": 14000 },
+        { "id": "HYD-T2", "cap": 10000 }
+      ]
+    },
+    {
+      "id": "DEP-CHN",
+      "name": "Chennai Port Depot",
+      "lat": 13.0827,
+      "lon": 80.2707,
+      "trucks": [
+        { "id": "CHN-T1", "cap": 16000 },
+        { "id": "CHN-T2", "cap": 12000 }
+      ]
+    },
+    {
+      "id": "DEP-KOL",
+      "name": "Kolkata East Depot",
+      "lat": 22.5726,
+      "lon": 88.3639,
+      "trucks": [
+        { "id": "KOL-T1", "cap": 14000 },
+        { "id": "KOL-T2", "cap": 10000 }
+      ]
+    },
+    {
+      "id": "DEP-PUN",
+      "name": "Pune Depot",
+      "lat": 18.5204,
+      "lon": 73.8567,
+      "trucks": [
+        { "id": "PUN-T1", "cap": 12000 },
+        { "id": "PUN-T2", "cap": 10000 }
+      ]
+    },
+    {
+      "id": "DEP-AMD",
+      "name": "Ahmedabad Depot",
+      "lat": 23.0225,
+      "lon": 72.5714,
+      "trucks": [
+        { "id": "AMD-T1", "cap": 14000 },
+        { "id": "AMD-T2", "cap": 10000 }
+      ]
+    }
+  ],
+  "stores": [
+    {
+      "id": "S01",
+      "name": "Bangalore East Cement Works",
+      "lat": 12.99,
+      "lon": 77.68,
+      "inventory": { "Cement": 2000, "Sand": 500, "Aggregate": 800 }
+    },
+    {
+      "id": "S02",
+      "name": "Whitefield Building Supplies",
+      "lat": 12.9698,
+      "lon": 77.75,
+      "inventory": { "Brick": 15000, "Sand": 300, "Paint": 200 }
+    },
+    {
+      "id": "S03",
+      "name": "Mysore Road Steel & Cement",
+      "lat": 12.934,
+      "lon": 77.49,
+      "inventory": { "Steel": 5000, "Cement": 1200, "Glass": 400 }
+    },
+    {
+      "id": "S04",
+      "name": "Electronic City Materials Hub",
+      "lat": 12.8458,
+      "lon": 77.6726,
+      "inventory": { "Aggregate": 2000, "Sand": 1000, "Wood": 500 }
+    },
+    {
+      "id": "S05",
+      "name": "Tumkur Highway Depot",
+      "lat": 13.34,
+      "lon": 77.101,
+      "inventory": { "Cement": 3000, "Brick": 8000, "Aggregate": 1500 }
+    },
+    {
+      "id": "S06",
+      "name": "Chennai North Steel Yard",
+      "lat": 13.15,
+      "lon": 80.28,
+      "inventory": { "Steel": 8000, "Cement": 500 }
+    },
+    {
+      "id": "S07",
+      "name": "Tambaram Brick & Sand",
+      "lat": 12.9249,
+      "lon": 80.1,
+      "inventory": { "Brick": 20000, "Sand": 800, "Aggregate": 600 }
+    },
+    {
+      "id": "S08",
+      "name": "Koyambedu Building Market",
+      "lat": 13.0694,
+      "lon": 80.1948,
+      "inventory": { "Cement": 1800, "Paint": 500, "Glass": 300, "Wood": 400 }
+    },
+    {
+      "id": "S09",
+      "name": "Coimbatore Industrial Supplies",
+      "lat": 11.0168,
+      "lon": 76.9558,
+      "inventory": { "Steel": 3000, "Cement": 900, "Sand": 400 }
+    },
+    {
+      "id": "S10",
+      "name": "Madurai Construction Yard",
+      "lat": 9.9252,
+      "lon": 78.1198,
+      "inventory": { "Brick": 12000, "Cement": 700, "Aggregate": 900 }
+    },
+    {
+      "id": "S11",
+      "name": "Hyderabad Kukatpally Materials",
+      "lat": 17.4849,
+      "lon": 78.3995,
+      "inventory": { "Cement": 2500, "Steel": 4000, "Sand": 700 }
+    },
+    {
+      "id": "S12",
+      "name": "Secunderabad Steel Hub",
+      "lat": 17.4399,
+      "lon": 78.4983,
+      "inventory": { "Steel": 6000, "Glass": 500, "Paint": 300 }
+    },
+    {
+      "id": "S13",
+      "name": "Warangal Aggregate & Sand",
+      "lat": 17.9689,
+      "lon": 79.5941,
+      "inventory": { "Aggregate": 3000, "Sand": 1500, "Brick": 5000 }
+    },
+    {
+      "id": "S14",
+      "name": "Vijayawada Cement Depot",
+      "lat": 16.5062,
+      "lon": 80.648,
+      "inventory": { "Cement": 3500, "Brick": 10000, "Wood": 600 }
+    },
+    {
+      "id": "S15",
+      "name": "Visakhapatnam Port Supplies",
+      "lat": 17.6868,
+      "lon": 83.2185,
+      "inventory": {
+        "Steel": 7000,
+        "Cement": 1000,
+        "Glass": 600,
+        "Aggregate": 1200
+      }
+    },
+    {
+      "id": "S16",
+      "name": "Mumbai Dharavi Building Hub",
+      "lat": 19.0375,
+      "lon": 72.8526,
+      "inventory": { "Cement": 4000, "Steel": 3000, "Paint": 800 }
+    },
+    {
+      "id": "S17",
+      "name": "Thane Construction Supplies",
+      "lat": 19.2183,
+      "lon": 72.9781,
+      "inventory": { "Brick": 18000, "Sand": 900, "Aggregate": 1400 }
+    },
+    {
+      "id": "S18",
+      "name": "Pune Hadapsar Materials",
+      "lat": 18.5089,
+      "lon": 73.9259,
+      "inventory": { "Steel": 5000, "Cement": 1500, "Glass": 400, "Wood": 700 }
+    },
+    {
+      "id": "S19",
+      "name": "Nashik Cement & Sand Yard",
+      "lat": 19.9975,
+      "lon": 73.7898,
+      "inventory": { "Cement": 2800, "Sand": 1200, "Aggregate": 800 }
+    },
+    {
+      "id": "S20",
+      "name": "Nagpur Central Supply",
+      "lat": 21.1458,
+      "lon": 79.0882,
+      "inventory": { "Cement": 2000, "Brick": 9000, "Steel": 2500 }
+    },
+    {
+      "id": "S21",
+      "name": "Surat Diamond Nagar Materials",
+      "lat": 21.1702,
+      "lon": 72.8311,
+      "inventory": { "Glass": 1000, "Paint": 600, "Wood": 800, "Steel": 2000 }
+    },
+    {
+      "id": "S22",
+      "name": "Ahmedabad GIDC Industrial",
+      "lat": 23.03,
+      "lon": 72.64,
+      "inventory": { "Cement": 3200, "Steel": 4500, "Aggregate": 1600 }
+    },
+    {
+      "id": "S23",
+      "name": "Rajkot Building Depot",
+      "lat": 22.3039,
+      "lon": 70.8022,
+      "inventory": { "Brick": 14000, "Sand": 700, "Paint": 400 }
+    },
+    {
+      "id": "S24",
+      "name": "Delhi Okhla Industrial Supplies",
+      "lat": 28.5355,
+      "lon": 77.2698,
+      "inventory": { "Steel": 9000, "Cement": 2000, "Glass": 700 }
+    },
+    {
+      "id": "S25",
+      "name": "Noida Sector 63 Materials",
+      "lat": 28.6273,
+      "lon": 77.3643,
+      "inventory": { "Brick": 25000, "Sand": 1500, "Aggregate": 2000 }
+    },
+    {
+      "id": "S26",
+      "name": "Gurugram Construction Hub",
+      "lat": 28.4595,
+      "lon": 77.0266,
+      "inventory": { "Cement": 3000, "Steel": 5000, "Wood": 900, "Paint": 500 }
+    },
+    {
+      "id": "S27",
+      "name": "Faridabad Brick Kilns",
+      "lat": 28.4089,
+      "lon": 77.3178,
+      "inventory": { "Brick": 30000, "Sand": 2000, "Aggregate": 2500 }
+    },
+    {
+      "id": "S28",
+      "name": "Ghaziabad Steel Yard",
+      "lat": 28.6692,
+      "lon": 77.4538,
+      "inventory": { "Steel": 7000, "Cement": 1500, "Glass": 500 }
+    },
+    {
+      "id": "S29",
+      "name": "Jaipur Sitapura Industrial",
+      "lat": 26.78,
+      "lon": 75.84,
+      "inventory": { "Cement": 2500, "Brick": 12000, "Aggregate": 1000 }
+    },
+    {
+      "id": "S30",
+      "name": "Jodhpur Building Supplies",
+      "lat": 26.2389,
+      "lon": 73.0243,
+      "inventory": { "Sand": 3000, "Brick": 8000, "Paint": 300 }
+    },
+    {
+      "id": "S31",
+      "name": "Kolkata Howrah Materials",
+      "lat": 22.5958,
+      "lon": 88.2636,
+      "inventory": { "Steel": 6000, "Cement": 1800, "Glass": 400 }
+    },
+    {
+      "id": "S32",
+      "name": "Durgapur Industrial Supplies",
+      "lat": 23.5204,
+      "lon": 87.3119,
+      "inventory": { "Steel": 8000, "Aggregate": 2000, "Sand": 1000 }
+    },
+    {
+      "id": "S33",
+      "name": "Siliguri North Bengal Depot",
+      "lat": 26.7271,
+      "lon": 88.3953,
+      "inventory": { "Wood": 1500, "Cement": 1200, "Brick": 7000 }
+    },
+    {
+      "id": "S34",
+      "name": "Bhubaneswar Construction Yard",
+      "lat": 20.2961,
+      "lon": 85.8245,
+      "inventory": { "Cement": 2200, "Brick": 9000, "Sand": 800 }
+    },
+    {
+      "id": "S35",
+      "name": "Patna Bridge Road Supplies",
+      "lat": 25.5941,
+      "lon": 85.1376,
+      "inventory": { "Brick": 16000, "Sand": 1200, "Cement": 1500 }
+    },
+    {
+      "id": "S36",
+      "name": "Lucknow Industrial Estate",
+      "lat": 26.8467,
+      "lon": 80.9462,
+      "inventory": { "Steel": 4000, "Cement": 2000, "Paint": 600, "Glass": 350 }
+    },
+    {
+      "id": "S37",
+      "name": "Kanpur Panki Materials",
+      "lat": 26.4499,
+      "lon": 80.3319,
+      "inventory": { "Brick": 20000, "Aggregate": 1800, "Sand": 1000 }
+    },
+    {
+      "id": "S38",
+      "name": "Agra Foundry & Build Depot",
+      "lat": 27.1767,
+      "lon": 78.0081,
+      "inventory": { "Steel": 3500, "Cement": 1800, "Brick": 8000 }
+    },
+    {
+      "id": "S39",
+      "name": "Chandigarh Phase 2 Supplies",
+      "lat": 30.7333,
+      "lon": 76.7794,
+      "inventory": { "Cement": 2500, "Sand": 900, "Wood": 800, "Paint": 400 }
+    },
+    {
+      "id": "S40",
+      "name": "Amritsar Steel & Cement",
+      "lat": 31.634,
+      "lon": 74.8723,
+      "inventory": { "Steel": 4500, "Cement": 2000, "Glass": 300 }
+    },
+    {
+      "id": "S41",
+      "name": "Ludhiana Industrial Hub",
+      "lat": 30.901,
+      "lon": 75.8573,
+      "inventory": { "Steel": 6000, "Brick": 10000, "Aggregate": 1500 }
+    },
+    {
+      "id": "S42",
+      "name": "Indore Scheme 78 Materials",
+      "lat": 22.7196,
+      "lon": 75.8577,
+      "inventory": { "Cement": 2800, "Steel": 3500, "Sand": 700 }
+    },
+    {
+      "id": "S43",
+      "name": "Bhopal Industrial Supplies",
+      "lat": 23.2599,
+      "lon": 77.4126,
+      "inventory": {
+        "Brick": 13000,
+        "Aggregate": 1200,
+        "Paint": 500,
+        "Wood": 600
+      }
+    },
+    {
+      "id": "S44",
+      "name": "Raipur Construction Depot",
+      "lat": 21.2514,
+      "lon": 81.6296,
+      "inventory": { "Steel": 4000, "Cement": 1600, "Sand": 900 }
+    },
+    {
+      "id": "S45",
+      "name": "Ranchi Steel & Aggregate Yard",
+      "lat": 23.3441,
+      "lon": 85.3096,
+      "inventory": { "Steel": 5500, "Aggregate": 2500, "Cement": 1000 }
+    },
+    {
+      "id": "S46",
+      "name": "Guwahati NH37 Building Hub",
+      "lat": 26.1445,
+      "lon": 91.7362,
+      "inventory": { "Wood": 2000, "Cement": 1400, "Brick": 6000, "Sand": 800 }
+    },
+    {
+      "id": "S47",
+      "name": "Kochi Port Timber & Glass",
+      "lat": 9.9312,
+      "lon": 76.2673,
+      "inventory": { "Wood": 3000, "Glass": 800, "Paint": 700 }
+    },
+    {
+      "id": "S48",
+      "name": "Thiruvananthapuram Cement Works",
+      "lat": 8.5241,
+      "lon": 76.9366,
+      "inventory": { "Cement": 1800, "Sand": 600, "Aggregate": 700 }
+    },
+    {
+      "id": "S49",
+      "name": "Mangalore Coastal Supplies",
+      "lat": 12.9141,
+      "lon": 74.856,
+      "inventory": {
+        "Sand": 2500,
+        "Aggregate": 1800,
+        "Cement": 1000,
+        "Wood": 500
+      }
+    },
+    {
+      "id": "S50",
+      "name": "Goa Panaji Building Depot",
+      "lat": 15.4909,
+      "lon": 73.8278,
+      "inventory": { "Cement": 1500, "Steel": 2000, "Paint": 600, "Glass": 300 }
+    },
+    {
+      "id": "S51",
+      "name": "Vadodara Industrial Materials",
+      "lat": 22.3072,
+      "lon": 73.1812,
+      "inventory": { "Steel": 5500, "Cement": 2200, "Aggregate": 1400 }
+    },
+    {
+      "id": "S52",
+      "name": "Srinagar Building Hub",
+      "lat": 34.0837,
+      "lon": 74.7973,
+      "inventory": { "Wood": 2500, "Cement": 1200, "Steel": 1500 }
+    },
+    {
+      "id": "S53",
+      "name": "Dehradun Mountain Supplies",
+      "lat": 30.3165,
+      "lon": 78.0322,
+      "inventory": { "Wood": 1800, "Cement": 1000, "Sand": 500 }
+    },
+    {
+      "id": "S54",
+      "name": "Jamshedpur Steel City Depot",
+      "lat": 22.8046,
+      "lon": 86.2029,
+      "inventory": { "Steel": 12000, "Aggregate": 3000, "Cement": 800 }
+    },
+    {
+      "id": "S55",
+      "name": "Varanasi Construction Supplies",
+      "lat": 25.3176,
+      "lon": 82.9739,
+      "inventory": { "Brick": 18000, "Sand": 1400, "Cement": 1600 }
+    }
+  ]
+}

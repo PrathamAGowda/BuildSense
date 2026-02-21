@@ -16,6 +16,7 @@
       :root {
         --bg: #0d0f18;
         --surface: #13161f;
+        --surface2: #1a1d2b;
         --card: #1c1f2e;
         --border: #252840;
         --accent: #4f8ef7;
@@ -23,6 +24,7 @@
         --amber: #fbbf24;
         --red: #f87171;
         --text: #e2e8f0;
+        --fg: #e2e8f0;
         --sub: #94a3b8;
         --radius: 10px;
         --sidebar: 210px;
@@ -102,6 +104,83 @@
         width: 16px;
         text-align: center;
         font-size: 0.85rem;
+      }
+
+      /* Nav badge — red dot for pending reorders */
+      .nav-badge {
+        margin-left: auto;
+        background: var(--red);
+        color: #fff;
+        font-size: 0.6rem;
+        font-weight: 700;
+        min-width: 16px;
+        height: 16px;
+        border-radius: 99px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+        animation: pulse-badge 1.8s ease-in-out infinite;
+      }
+      @keyframes pulse-badge {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.55;
+        }
+      }
+
+      /* Startup overlay */
+      #setup-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.72);
+        backdrop-filter: blur(6px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #setup-modal {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2rem 2.4rem;
+        width: 480px;
+        max-width: 95vw;
+      }
+      #setup-modal h2 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 0.3rem;
+      }
+      #setup-modal .sub {
+        font-size: 0.78rem;
+        color: var(--sub);
+        margin-bottom: 1.2rem;
+      }
+      #setup-modal label {
+        display: block;
+        font-size: 0.74rem;
+        color: var(--sub);
+        margin-bottom: 0.25rem;
+        margin-top: 0.7rem;
+      }
+      #setup-modal input {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        color: var(--text);
+        padding: 0.5rem 0.75rem;
+        font-size: 0.84rem;
+      }
+      #setup-modal input:focus {
+        outline: none;
+        border-color: var(--accent);
       }
 
       /* Main */
@@ -437,6 +516,79 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   </head>
   <body>
+    <!-- ── Project Setup Overlay (shown once on first visit) ──── -->
+    <div id="setup-overlay">
+      <div id="setup-modal">
+        <h2>🏗 Welcome to BuildSense</h2>
+        <p class="sub">
+          Set your project destination once — all auto-reorder deliveries will
+          be sent here automatically.
+        </p>
+
+        <label>Project Name</label>
+        <input
+          id="setup-project-name"
+          placeholder="e.g. Koramangala Tower Block A"
+        />
+
+        <label>Destination / Site Address</label>
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem">
+          <input
+            id="setup-geo-input"
+            placeholder="Search city or address…"
+            style="flex: 1"
+            onkeydown="if (event.key === 'Enter') setupGeoSearch();"
+          />
+          <button
+            class="btn btn-ghost"
+            style="white-space: nowrap"
+            onclick="setupGeoSearch()"
+          >
+            Search
+          </button>
+        </div>
+        <div id="setup-geo-results" style="margin-top: 0.4rem"></div>
+
+        <div
+          id="setup-coords-display"
+          style="
+            display: none;
+            margin-top: 0.6rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--surface2);
+            border-radius: 8px;
+            font-size: 0.76rem;
+            color: var(--green);
+          "
+        >
+          📍 <span id="setup-coords-label"></span>
+        </div>
+
+        <button
+          class="btn btn-primary"
+          style="width: 100%; margin-top: 1.1rem; padding: 0.65rem"
+          onclick="saveProjectSetup()"
+        >
+          Save &amp; Start →
+        </button>
+        <button
+          style="
+            background: none;
+            border: none;
+            color: var(--sub);
+            font-size: 0.74rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 0.5rem;
+            text-align: center;
+          "
+          onclick="skipSetup()"
+        >
+          Skip for now (you can set this later in Settings)
+        </button>
+      </div>
+    </div>
+
     <!-- Sidebar -->
     <aside>
       <div class="logo">Build<em>Sense</em></div>
@@ -456,8 +608,13 @@
         <button onclick="goto('inventory')">
           <span class="ico">◎</span> Inventory
         </button>
-        <button onclick="goto('reorder')">
+        <button onclick="goto('reorder')" id="nav-reorder-btn">
           <span class="ico">△</span> Reorder
+          <span
+            class="nav-badge"
+            id="reorder-nav-badge"
+            style="display: none"
+          ></span>
         </button>
         <button onclick="goto('complete')">
           <span class="ico">✓</span> Close Phase
@@ -599,6 +756,98 @@
 
         <div id="p3-output"></div>
 
+        <!-- Auto-Reorder Site Panel -->
+        <div class="card" id="p3-site-card">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 0.6rem;
+            "
+          >
+            <div>
+              <div class="card-hd" style="margin-bottom: 0.1rem">
+                🤖 Auto-Reorder Intelligence
+              </div>
+              <div class="sub" style="font-size: 0.72rem">
+                Set your site location once — every daily log automatically
+                predicts stockout via EMA and sources materials from the nearest
+                stores if needed.
+              </div>
+            </div>
+          </div>
+          <div
+            class="row"
+            style="gap: 0.5rem; align-items: flex-end; flex-wrap: wrap"
+          >
+            <div class="field" style="flex: 1; min-width: 180px">
+              <label>Site / Destination</label>
+              <input
+                id="ar-geo-input"
+                type="text"
+                placeholder="e.g. Jaipur, Rajasthan"
+                onkeydown="if (event.key === 'Enter') arGeoSearch();"
+                style="width: 100%"
+              />
+            </div>
+            <button
+              class="btn btn-ghost"
+              onclick="arGeoSearch()"
+              style="margin-bottom: 0"
+            >
+              🔍 Search
+            </button>
+            <button
+              class="btn btn-ghost"
+              onclick="runAllReorderCheck()"
+              style="margin-bottom: 0; color: var(--accent)"
+            >
+              ⚡ Check All Now
+            </button>
+          </div>
+          <div
+            id="ar-geo-results"
+            style="
+              display: none;
+              margin-top: 0.5rem;
+              border: 1px solid var(--border);
+              border-radius: var(--radius);
+              overflow: hidden;
+            "
+          ></div>
+          <div
+            id="ar-site-badge"
+            style="
+              display: none;
+              margin-top: 0.55rem;
+              padding: 0.45rem 0.8rem;
+              background: rgba(39, 174, 96, 0.1);
+              border: 1px solid rgba(39, 174, 96, 0.35);
+              border-radius: var(--radius);
+              font-size: 0.79rem;
+              display: flex;
+              align-items: center;
+              gap: 0.6rem;
+            "
+          >
+            <span>📍</span>
+            <span id="ar-site-label">—</span>
+            <button
+              class="btn btn-ghost"
+              onclick="arClearSite()"
+              style="
+                margin-left: auto;
+                font-size: 0.72rem;
+                padding: 0.2rem 0.5rem;
+              "
+            >
+              ✕
+            </button>
+          </div>
+          <div id="ar-all-output"></div>
+        </div>
+
         <div class="card">
           <div class="card-hd">Manual Snapshot</div>
           <div class="row">
@@ -676,12 +925,65 @@
 
       <!-- Reorder -->
       <div class="section" id="s-reorder">
-        <div class="page-hd">Reorder Check</div>
+        <div class="page-hd">Reorder</div>
         <div class="page-sub">
-          Alerts when remaining stock hits the 20% threshold and suggests a
-          top-up quantity.
+          AI-triggered reorder requests awaiting your approval · approve to
+          auto-source from nearest depots.
         </div>
-        <div class="card">
+
+        <!-- ── Pending Approvals ──────────────────────────────── -->
+        <div class="card" id="pending-approvals-card">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 0.85rem;
+            "
+          >
+            <div>
+              <div class="card-hd" style="margin-bottom: 0.1rem">
+                ⏳ Pending Approvals
+                <span
+                  id="pending-count-badge"
+                  style="
+                    display: none;
+                    margin-left: 0.5rem;
+                    background: var(--red);
+                    color: #fff;
+                    font-size: 0.65rem;
+                    font-weight: 700;
+                    padding: 0.1rem 0.45rem;
+                    border-radius: 99px;
+                    vertical-align: middle;
+                  "
+                ></span>
+              </div>
+              <div class="sub" style="font-size: 0.73rem">
+                Auto-detected by EMA engine · click Approve to instantly source
+                &amp; book delivery
+              </div>
+            </div>
+            <button
+              class="btn btn-ghost"
+              style="font-size: 0.8rem; padding: 0.35rem 0.8rem"
+              onclick="loadPendingReorders()"
+            >
+              ↻ Refresh
+            </button>
+          </div>
+          <div id="pending-reorders-output">
+            <div class="sub" style="text-align: center; padding: 1.2rem 0">
+              Loading…
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Manual Reorder Check (legacy) ─────────────────── -->
+        <div class="card" style="margin-top: 1.1rem">
+          <div class="card-hd" style="margin-bottom: 0.7rem">
+            Manual Snapshot Check
+          </div>
           <div class="row">
             <div class="field">
               <label>Material</label
@@ -784,52 +1086,152 @@
         </div>
         <div id="p5-output"></div>
         <div id="p5-history"></div>
+
+        <!-- ── Reorder Transaction Log ─────────────────────────── -->
+        <div class="card" style="margin-top: 1.4rem">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 0.85rem;
+            "
+          >
+            <div>
+              <div class="card-hd" style="margin-bottom: 0.1rem">
+                📋 Reorder Transaction Log
+              </div>
+              <div class="sub" style="font-size: 0.73rem">
+                All auto-triggered reorder events · newest first
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center">
+              <button
+                class="btn btn-ghost"
+                style="font-size: 0.8rem; padding: 0.35rem 0.8rem"
+                onclick="loadReorderLogs()"
+              >
+                ↻ Refresh
+              </button>
+              <button
+                class="btn"
+                style="
+                  font-size: 0.8rem;
+                  padding: 0.35rem 0.8rem;
+                  background: var(--danger, #ef4444);
+                  color: #fff;
+                  border: none;
+                  border-radius: 6px;
+                  cursor: pointer;
+                "
+                onclick="clearReorderLogs()"
+              >
+                🗑 Clear All
+              </button>
+            </div>
+          </div>
+          <div id="reorder-log-output">
+            <div class="sub" style="text-align: center; padding: 1.2rem 0">
+              Click ↻ Refresh to load logs.
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Delivery -->
+      <!-- Delivery / Supply Network -->
       <div class="section" id="s-delivery">
-        <div class="page-hd">Delivery Planning</div>
+        <div class="page-hd">Supply Network Planner</div>
         <div class="page-sub">
-          Build your route, allocate materials to trucks, and get the shortest
-          delivery path with CO₂ estimates.
+          Enter your destination and material requirements — BuildSense
+          automatically sources everything from the nearest stores across India
+          and plans optimal truck routes from the closest depots.
         </div>
 
-        <!-- Route Builder -->
-        <div class="card">
-          <div class="card-hd">Route Builder</div>
-          <div class="sub" style="margin-bottom: 0.8rem; font-size: 0.78rem">
-            Search for a city or address, then click
-            <strong>Set as Source</strong>, <strong>Add Stop</strong>, or
-            <strong>Set as Destination</strong>.
+        <!-- Network info bar -->
+        <div
+          id="sn-info-bar"
+          style="
+            display: flex;
+            gap: 0.7rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.3rem;
+          "
+        >
+          <div
+            class="card"
+            style="margin: 0; flex: 1; min-width: 130px; padding: 0.9rem 1.1rem"
+          >
+            <div class="sub" style="font-size: 0.72rem; margin-bottom: 0.25rem">
+              🏭 DEPOTS
+            </div>
+            <div
+              id="sn-depot-count"
+              style="font-size: 1.5rem; font-weight: 700; color: var(--accent)"
+            >
+              —
+            </div>
           </div>
+          <div
+            class="card"
+            style="margin: 0; flex: 1; min-width: 130px; padding: 0.9rem 1.1rem"
+          >
+            <div class="sub" style="font-size: 0.72rem; margin-bottom: 0.25rem">
+              🏪 STORES
+            </div>
+            <div
+              id="sn-store-count"
+              style="font-size: 1.5rem; font-weight: 700; color: var(--green)"
+            >
+              —
+            </div>
+          </div>
+          <div
+            class="card"
+            style="margin: 0; flex: 2; min-width: 200px; padding: 0.9rem 1.1rem"
+          >
+            <div class="sub" style="font-size: 0.72rem; margin-bottom: 0.25rem">
+              📍 DEPOT HUBS
+            </div>
+            <div
+              id="sn-depot-names"
+              style="font-size: 0.8rem; color: var(--fg); line-height: 1.5"
+            >
+              —
+            </div>
+          </div>
+        </div>
 
-          <!-- Search bar -->
+        <!-- Step 1 — Destination -->
+        <div class="card">
+          <div class="card-hd">① Destination</div>
+          <div class="sub" style="margin-bottom: 0.8rem; font-size: 0.78rem">
+            Search for your construction site or delivery location anywhere in
+            India.
+          </div>
           <div
             class="row"
             style="gap: 0.5rem; align-items: flex-end; flex-wrap: wrap"
           >
             <div class="field" style="flex: 1; min-width: 200px">
-              <label>Search location</label>
+              <label>Search destination</label>
               <input
-                id="geo-input"
+                id="sn-geo-input"
                 type="text"
-                placeholder="e.g. Mumbai, India"
-                onkeydown="if (event.key === 'Enter') geocodeSearch();"
+                placeholder="e.g. Jaipur, Rajasthan"
+                onkeydown="if (event.key === 'Enter') snGeoSearch();"
                 style="width: 100%"
               />
             </div>
             <button
               class="btn btn-ghost"
-              onclick="geocodeSearch()"
+              onclick="snGeoSearch()"
               style="margin-bottom: 0"
             >
               🔍 Search
             </button>
           </div>
-
-          <!-- Search results -->
           <div
-            id="geo-results"
+            id="sn-geo-results"
             style="
               display: none;
               margin-top: 0.5rem;
@@ -838,169 +1240,287 @@
               overflow: hidden;
             "
           ></div>
-
-          <!-- Add-stop actions (shown once a candidate is selected) -->
           <div
+            id="sn-dest-badge"
             style="
-              margin-top: 0.6rem;
+              display: none;
+              margin-top: 0.7rem;
+              padding: 0.55rem 0.9rem;
+              background: rgba(192, 57, 43, 0.12);
+              border: 1px solid rgba(192, 57, 43, 0.35);
+              border-radius: var(--radius);
+              font-size: 0.82rem;
+              color: var(--fg);
               display: flex;
-              gap: 0.4rem;
-              flex-wrap: wrap;
+              align-items: center;
+              gap: 0.6rem;
             "
           >
+            <span style="font-size: 1rem">📍</span>
+            <span id="sn-dest-label">—</span>
             <button
               class="btn btn-ghost"
-              onclick="addPendingAsStop('source')"
+              onclick="snClearDest()"
               style="
-                font-size: 0.76rem;
-                display: flex;
-                align-items: center;
-                gap: 0.35rem;
+                margin-left: auto;
+                font-size: 0.72rem;
+                padding: 0.2rem 0.5rem;
               "
             >
-              <span
-                style="
-                  display: inline-block;
-                  width: 10px;
-                  height: 10px;
-                  border-radius: 50%;
-                  background: #27ae60;
-                  flex-shrink: 0;
-                "
-              ></span>
-              Set as Source
-            </button>
-            <button
-              class="btn btn-ghost"
-              onclick="addPendingAsStop('stop')"
-              style="
-                font-size: 0.76rem;
-                display: flex;
-                align-items: center;
-                gap: 0.35rem;
-              "
-            >
-              <span
-                style="
-                  display: inline-block;
-                  width: 10px;
-                  height: 10px;
-                  border-radius: 50%;
-                  background: #2980b9;
-                  flex-shrink: 0;
-                "
-              ></span>
-              Add as Stop
-            </button>
-            <button
-              class="btn btn-ghost"
-              onclick="addPendingAsStop('dest')"
-              style="
-                font-size: 0.76rem;
-                display: flex;
-                align-items: center;
-                gap: 0.35rem;
-              "
-            >
-              <span
-                style="
-                  display: inline-block;
-                  width: 10px;
-                  height: 10px;
-                  border-radius: 50%;
-                  background: #c0392b;
-                  flex-shrink: 0;
-                "
-              ></span>
-              Set as Destination
+              ✕
             </button>
           </div>
+        </div>
 
-          <!-- Stop list -->
+        <!-- Step 2 — Requirements -->
+        <div class="card">
+          <div class="card-hd">② Material Requirements</div>
+          <div class="sub" style="margin-bottom: 0.8rem; font-size: 0.78rem">
+            Enter the quantity needed for each material. Leave blank or zero to
+            skip.
+          </div>
           <div
-            id="route-stops"
-            style="
-              margin-top: 0.9rem;
-              display: flex;
-              flex-direction: column;
-              gap: 0.35rem;
-            "
+            id="sn-req-rows"
+            style="display: flex; flex-direction: column; gap: 0.4rem"
           ></div>
+        </div>
 
-          <!-- Clear + summary row -->
-          <div
-            style="
-              margin-top: 0.7rem;
-              display: flex;
-              gap: 0.5rem;
-              flex-wrap: wrap;
-              align-items: center;
-            "
+        <!-- Plan button -->
+        <div style="display: flex; justify-content: flex-end">
+          <button
+            class="btn btn-primary"
+            style="min-width: 160px"
+            onclick="planSupply()"
           >
-            <button
-              class="btn btn-ghost"
-              onclick="clearRoute()"
-              style="font-size: 0.76rem"
-            >
-              ✕ Clear Route
-            </button>
-            <span
-              id="route-summary"
-              class="sub"
-              style="font-size: 0.76rem"
-            ></span>
-          </div>
+            ⚡ Plan Supply
+          </button>
         </div>
 
-        <!-- Dispatch + Trucks -->
-        <div class="card">
-          <div class="card-hd">Dispatch Quantities</div>
-          <div id="d-mat-rows"></div>
-        </div>
-        <div class="card">
-          <div class="card-hd">Truck Fleet</div>
-          <div id="d-trucks"></div>
-          <div
-            style="
-              display: flex;
-              gap: 0.5rem;
-              align-items: center;
-              margin-top: 0.7rem;
-              flex-wrap: wrap;
-            "
-          >
-            <button class="btn btn-ghost" onclick="addTruck()">+ Truck</button>
-            <label
-              style="
-                display: flex;
-                align-items: center;
-                gap: 0.4rem;
-                font-size: 0.8rem;
-                cursor: pointer;
-                color: var(--sub);
-              "
-            >
-              <input
-                type="checkbox"
-                id="d-rain"
-                style="width: 13px; height: 13px; accent-color: var(--accent)"
-              />
-              Rain expected
-            </label>
-            <button
-              class="btn btn-primary"
-              style="margin-left: auto"
-              onclick="planDelivery()"
-            >
-              Plan Delivery
-            </button>
-          </div>
-        </div>
-
+        <!-- Map -->
         <div id="d-map-container">
           <div id="delivery-map"></div>
         </div>
-        <div id="d-output"></div>
+
+        <!-- Results -->
+        <div id="sn-output"></div>
+
+        <!-- ──── Advanced: Manual Route Builder (collapsible) ──── -->
+        <details style="margin-top: 1.2rem">
+          <summary
+            style="
+              cursor: pointer;
+              font-size: 0.82rem;
+              color: var(--sub);
+              padding: 0.5rem 0;
+              user-select: none;
+            "
+          >
+            ▸ Advanced — Custom Route Builder
+          </summary>
+
+          <div style="margin-top: 0.8rem">
+            <div class="card">
+              <div class="card-hd">Route Builder</div>
+              <div
+                class="sub"
+                style="margin-bottom: 0.8rem; font-size: 0.78rem"
+              >
+                Search for a city or address, then click
+                <strong>Set as Source</strong>, <strong>Add Stop</strong>, or
+                <strong>Set as Destination</strong>.
+              </div>
+              <div
+                class="row"
+                style="gap: 0.5rem; align-items: flex-end; flex-wrap: wrap"
+              >
+                <div class="field" style="flex: 1; min-width: 200px">
+                  <label>Search location</label>
+                  <input
+                    id="geo-input"
+                    type="text"
+                    placeholder="e.g. Mumbai, India"
+                    onkeydown="if (event.key === 'Enter') geocodeSearch();"
+                    style="width: 100%"
+                  />
+                </div>
+                <button
+                  class="btn btn-ghost"
+                  onclick="geocodeSearch()"
+                  style="margin-bottom: 0"
+                >
+                  🔍 Search
+                </button>
+              </div>
+              <div
+                id="geo-results"
+                style="
+                  display: none;
+                  margin-top: 0.5rem;
+                  border: 1px solid var(--border);
+                  border-radius: var(--radius);
+                  overflow: hidden;
+                "
+              ></div>
+              <div
+                style="
+                  margin-top: 0.6rem;
+                  display: flex;
+                  gap: 0.4rem;
+                  flex-wrap: wrap;
+                "
+              >
+                <button
+                  class="btn btn-ghost"
+                  onclick="addPendingAsStop('source')"
+                  style="
+                    font-size: 0.76rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.35rem;
+                  "
+                >
+                  <span
+                    style="
+                      display: inline-block;
+                      width: 10px;
+                      height: 10px;
+                      border-radius: 50%;
+                      background: #27ae60;
+                      flex-shrink: 0;
+                    "
+                  ></span>
+                  Set as Source
+                </button>
+                <button
+                  class="btn btn-ghost"
+                  onclick="addPendingAsStop('stop')"
+                  style="
+                    font-size: 0.76rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.35rem;
+                  "
+                >
+                  <span
+                    style="
+                      display: inline-block;
+                      width: 10px;
+                      height: 10px;
+                      border-radius: 50%;
+                      background: #2980b9;
+                      flex-shrink: 0;
+                    "
+                  ></span>
+                  Add as Stop
+                </button>
+                <button
+                  class="btn btn-ghost"
+                  onclick="addPendingAsStop('dest')"
+                  style="
+                    font-size: 0.76rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.35rem;
+                  "
+                >
+                  <span
+                    style="
+                      display: inline-block;
+                      width: 10px;
+                      height: 10px;
+                      border-radius: 50%;
+                      background: #c0392b;
+                      flex-shrink: 0;
+                    "
+                  ></span>
+                  Set as Destination
+                </button>
+              </div>
+              <div
+                id="route-stops"
+                style="
+                  margin-top: 0.9rem;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 0.35rem;
+                "
+              ></div>
+              <div
+                style="
+                  margin-top: 0.7rem;
+                  display: flex;
+                  gap: 0.5rem;
+                  flex-wrap: wrap;
+                  align-items: center;
+                "
+              >
+                <button
+                  class="btn btn-ghost"
+                  onclick="clearRoute()"
+                  style="font-size: 0.76rem"
+                >
+                  ✕ Clear Route
+                </button>
+                <span
+                  id="route-summary"
+                  class="sub"
+                  style="font-size: 0.76rem"
+                ></span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-hd">Dispatch Quantities</div>
+              <div id="d-mat-rows"></div>
+            </div>
+            <div class="card">
+              <div class="card-hd">Truck Fleet</div>
+              <div id="d-trucks"></div>
+              <div
+                style="
+                  display: flex;
+                  gap: 0.5rem;
+                  align-items: center;
+                  margin-top: 0.7rem;
+                  flex-wrap: wrap;
+                "
+              >
+                <button class="btn btn-ghost" onclick="addTruck()">
+                  + Truck
+                </button>
+                <label
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    font-size: 0.8rem;
+                    cursor: pointer;
+                    color: var(--sub);
+                  "
+                >
+                  <input
+                    type="checkbox"
+                    id="d-rain"
+                    style="
+                      width: 13px;
+                      height: 13px;
+                      accent-color: var(--accent);
+                    "
+                  />
+                  Rain expected
+                </label>
+                <button
+                  class="btn btn-primary"
+                  style="margin-left: auto"
+                  onclick="planDelivery()"
+                >
+                  Plan Delivery
+                </button>
+              </div>
+            </div>
+            <div id="d-output"></div>
+          </div>
+        </details>
       </div>
     </main>
 
@@ -1030,9 +1550,17 @@
           .forEach((b, i) => b.classList.toggle("active", NAV_IDS[i] === id));
         if (id === "delivery") {
           buildDeliveryMatRows();
+          buildSnReqRows();
           initDeliveryMap();
+          snLoadNetworkInfo();
         }
-        if (id === "inventory") loadPhases("p3");
+        if (id === "inventory") {
+          loadPhases("p3");
+          loadReorderLogs();
+        }
+        if (id === "reorder") {
+          loadPendingReorders();
+        }
       }
 
       /* Toast */
@@ -1409,18 +1937,339 @@
         if (isNaN(phaseI) || phaseI < 0)
           return toast("No phase selected.", "warn");
         try {
-          await api("POST", "/phase/log-daily-usage", {
+          const res = await api("POST", "/phase/log-daily-usage", {
             material: mat,
             phase_index: phaseI,
             qty_used: qty,
             date: dateV || undefined,
+            // pass site coords if user has set them in the auto-reorder panel
+            dest_lat: siteCoords ? siteCoords.lat : undefined,
+            dest_lon: siteCoords ? siteCoords.lon : undefined,
+            dest_name: siteCoords ? siteCoords.name : undefined,
           });
           await loadMaterials();
           loadPhases("p3");
           renderPhaseSnapshot();
           toast(`Logged ${qty} for ${mat}.`, "ok");
+
+          // ── Auto-reorder inline alert ──────────────────────── //
+          renderAutoReorderAlert(
+            res.auto_reorder,
+            document.getElementById("p3-output"),
+          );
         } catch (e) {
           toast(e.message, "err");
+        }
+      }
+
+      // Site coordinates set by the user in the auto-reorder panel
+      let siteCoords = null;
+
+      function renderAutoReorderAlert(ar, container) {
+        if (!ar) return;
+        if (!ar.triggered) {
+          // Show a quiet "stock OK" badge
+          const days = ar.prediction && ar.prediction.days_remaining;
+          if (days !== null && days !== undefined) {
+            container.innerHTML = `
+<div style="margin-top:.6rem;padding:.5rem .9rem;background:rgba(39,174,96,.1);
+  border-left:3px solid var(--green);border-radius:var(--radius);font-size:.79rem;display:flex;gap:.6rem;align-items:center;">
+  ✅ <span>Stock OK — <b style="color:var(--green);">${days.toFixed(1)} days</b> remaining (EMA rate: ${ar.prediction.ema_rate} ${ar.unit}/day)</span>
+</div>`;
+          }
+          return;
+        }
+
+        const isCritical = ar.critical;
+        const bg = isCritical ? "rgba(192,57,43,.12)" : "rgba(230,126,34,.1)";
+        const border = isCritical ? "var(--red)" : "var(--amber)";
+        const icon = isCritical ? "🚨" : "⚠️";
+        const pred = ar.prediction || {};
+
+        let supplyHTML = "";
+        if (ar.supply_plan && !ar.supply_plan.error) {
+          const sp = ar.supply_plan;
+          const sum = sp.summary || {};
+          supplyHTML = `
+<div style="margin-top:.75rem;padding:.65rem .9rem;background:var(--surface2);border-radius:var(--radius);">
+  <div style="font-weight:700;font-size:.8rem;margin-bottom:.5rem;">📦 Auto Supply Plan Ready</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Trucks</div><div class="stat-value">${sum.total_trucks ?? "—"}</div></div>
+    <div class="stat"><div class="stat-label">Depots</div><div class="stat-value">${sum.depots_used ?? "—"}</div></div>
+    <div class="stat"><div class="stat-label">Stores</div><div class="stat-value">${sum.stores_sourced ?? "—"}</div></div>
+    <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${sum.total_km ? sum.total_km.toLocaleString() + " km" : "—"}</div></div>
+    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${sum.total_co2_kg ? sum.total_co2_kg.toLocaleString() + " kg" : "—"}</div></div>
+    <div class="stat"><div class="stat-label">Shortfalls</div><div class="stat-value ${sum.shortfalls > 0 ? "bad" : "good"}">${sum.shortfalls ?? 0}</div></div>
+  </div>
+  ${(sp.depot_plans || [])
+    .map(
+      (dp) => `
+    <div style="margin-top:.5rem;font-size:.76rem;color:var(--sub);font-weight:600;">${dp.depot.name}</div>
+    ${(dp.assignments || [])
+      .map(
+        (a) => `
+      <div style="font-size:.73rem;padding:.2rem 0;border-bottom:1px solid var(--border);">
+        🚛 <b>${a.truck_id}</b> — ${a.load_kg.toLocaleString()} kg · ${a.distance_km} km
+        <span style="color:var(--sub);">${a.route.map((r) => r.name).join(" → ")}</span>
+      </div>`,
+      )
+      .join("")}
+  `,
+    )
+    .join("")}
+  ${
+    (sp.shortfalls || []).length
+      ? `
+    <div style="margin-top:.5rem;padding:.4rem .7rem;background:rgba(192,57,43,.1);border-radius:5px;font-size:.74rem;color:var(--red);">
+      ⚠ Shortfalls: ${sp.shortfalls.map((s) => `${s.material} (${s.shortfall_kg} kg)`).join(", ")}
+    </div>`
+      : ""
+  }
+</div>`;
+        } else if (ar.supply_plan && ar.supply_plan.error) {
+          supplyHTML = `<div style="font-size:.74rem;color:var(--sub);margin-top:.4rem;">Supply plan unavailable: ${ar.supply_plan.error}</div>`;
+        } else if (!siteCoords) {
+          supplyHTML = `<div style="font-size:.74rem;color:var(--sub);margin-top:.5rem;">
+            💡 Set your <b>site location</b> in the Auto-Reorder panel below to get a full supply plan automatically.
+          </div>`;
+        }
+
+        container.innerHTML = `
+<div style="margin-top:.6rem;padding:.7rem .95rem;background:${bg};
+  border-left:3px solid ${border};border-radius:var(--radius);font-size:.8rem;">
+  <div style="font-weight:700;font-size:.84rem;margin-bottom:.3rem;">${icon} Auto-Reorder Alert — ${ar.material}</div>
+  <div style="color:var(--fg);margin-bottom:.3rem;">${ar.reason}</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">EMA Rate</div><div class="stat-value">${pred.ema_rate ?? "—"} ${ar.unit}/day</div></div>
+    <div class="stat"><div class="stat-label">Days Left</div><div class="stat-value ${isCritical ? "bad" : "warn"}">${pred.days_remaining != null ? pred.days_remaining.toFixed(1) : "—"}</div></div>
+    <div class="stat"><div class="stat-label">Stockout</div><div class="stat-value">${pred.stockout_date ?? "—"}</div></div>
+    <div class="stat"><div class="stat-label">Reorder Qty</div><div class="stat-value">${ar.reorder_qty} ${ar.unit}</div></div>
+  </div>
+  ${supplyHTML}
+</div>`;
+      }
+
+      /* ── Auto-Reorder site geocoding ── */
+      async function arGeoSearch() {
+        const q = document.getElementById("ar-geo-input").value.trim();
+        if (!q) return toast("Enter a site location.", "warn");
+        const el = document.getElementById("ar-geo-results");
+        el.innerHTML = `<div style="padding:.5rem .7rem;color:var(--sub);font-size:.8rem;">Searching…</div>`;
+        el.style.display = "block";
+        try {
+          const data = await api("GET", `/geocode?q=${encodeURIComponent(q)}`);
+          if (!data.length) {
+            el.innerHTML = `<div style="padding:.5rem .7rem;color:var(--sub);font-size:.8rem;">No results.</div>`;
+            return;
+          }
+          el._candidates = data;
+          el.innerHTML = data
+            .map(
+              (c, i) => `
+<div onclick="arSelectSite(${i})" style="padding:.42rem .7rem;cursor:pointer;font-size:.8rem;
+  border-bottom:1px solid var(--border);"
+  onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+  <b>${c.name}</b> <span class="sub" style="font-size:.72rem;">${c.display_name}</span>
+</div>`,
+            )
+            .join("");
+        } catch (e) {
+          el.innerHTML = `<div style="padding:.5rem .7rem;color:var(--red);font-size:.8rem;">${e.message}</div>`;
+        }
+      }
+
+      function arSelectSite(idx) {
+        const c = document.getElementById("ar-geo-results")._candidates[idx];
+        siteCoords = { lat: c.lat, lon: c.lon, name: c.name };
+        document.getElementById("ar-geo-results").style.display = "none";
+        document.getElementById("ar-geo-input").value = c.name;
+        const badge = document.getElementById("ar-site-badge");
+        document.getElementById("ar-site-label").textContent =
+          `${c.name} (${c.lat.toFixed(4)}, ${c.lon.toFixed(4)})`;
+        badge.style.display = "flex";
+        toast(
+          `Site set: ${c.name}. Auto-reorder is now active for all logs.`,
+          "ok",
+        );
+      }
+
+      function arClearSite() {
+        siteCoords = null;
+        document.getElementById("ar-geo-input").value = "";
+        document.getElementById("ar-site-badge").style.display = "none";
+        document.getElementById("ar-all-output").innerHTML = "";
+      }
+
+      async function runAllReorderCheck() {
+        if (!siteCoords) return toast("Set a site location first.", "warn");
+        const out = document.getElementById("ar-all-output");
+        out.innerHTML = `<div class="sub" style="margin-top:.6rem;font-size:.79rem;">Running EMA predictions across all materials…</div>`;
+        try {
+          const res = await api("POST", "/phase/auto-reorder-all", {
+            dest_lat: siteCoords.lat,
+            dest_lon: siteCoords.lon,
+            dest_name: siteCoords.name,
+          });
+
+          const {
+            alerts,
+            triggered_count,
+            critical_count,
+            combined_supply_plan: csp,
+          } = res;
+
+          const triggered = alerts.filter((a) => a.triggered);
+          const ok = alerts.filter(
+            (a) => !a.triggered && !a.prediction?.insufficient_data,
+          );
+          const nodata = alerts.filter((a) => a.prediction?.insufficient_data);
+
+          let html = `<div style="margin-top:.75rem;">`;
+
+          // Summary bar
+          html += `<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem;">
+            <span style="font-size:.76rem;padding:.2rem .6rem;border-radius:99px;
+              background:${critical_count > 0 ? "rgba(192,57,43,.15)" : "rgba(39,174,96,.1)"};
+              color:${critical_count > 0 ? "var(--red)" : "var(--green)"};">
+              ${critical_count > 0 ? `🚨 ${critical_count} Critical` : "✅ No Critical Alerts"}
+            </span>
+            ${triggered_count > 0 ? `<span style="font-size:.76rem;padding:.2rem .6rem;border-radius:99px;background:rgba(230,126,34,.1);color:var(--amber);">⚠ ${triggered_count} Reorder Needed</span>` : ""}
+            <span style="font-size:.76rem;padding:.2rem .6rem;border-radius:99px;background:var(--surface2);color:var(--sub);">${ok.length} Materials OK</span>
+          </div>`;
+
+          // Triggered alerts
+          triggered.forEach((ar) => {
+            const isCrit = ar.critical;
+            const pred = ar.prediction || {};
+            html += `
+<div style="margin-bottom:.5rem;padding:.6rem .9rem;
+  background:${isCrit ? "rgba(192,57,43,.1)" : "rgba(230,126,34,.08)"};
+  border-left:3px solid ${isCrit ? "var(--red)" : "var(--amber)"};
+  border-radius:var(--radius);font-size:.78rem;">
+  <b>${isCrit ? "🚨" : "⚠️"} ${ar.material}</b> — ${pred.days_remaining != null ? pred.days_remaining.toFixed(1) + " days left" : "low stock"}
+  <span class="sub" style="font-size:.72rem;display:block;margin-top:.2rem;">
+    EMA: ${pred.ema_rate ?? "—"} ${ar.unit}/day · Stockout: ${pred.stockout_date ?? "—"} · Reorder: ${ar.reorder_qty} ${ar.unit}
+  </span>
+</div>`;
+          });
+
+          // Combined supply plan
+          if (csp && !csp.error) {
+            const sum = csp.summary || {};
+            html += `<div style="margin-top:.7rem;padding:.65rem .9rem;background:var(--surface2);border-radius:var(--radius);">
+  <div style="font-weight:700;font-size:.8rem;margin-bottom:.45rem;">📦 Combined Supply Plan (All Triggered Materials)</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Trucks</div><div class="stat-value">${sum.total_trucks ?? "—"}</div></div>
+    <div class="stat"><div class="stat-label">Depots</div><div class="stat-value">${sum.depots_used ?? "—"}</div></div>
+    <div class="stat"><div class="stat-label">Total kg</div><div class="stat-value">${sum.total_kg ? sum.total_kg.toLocaleString() : "—"}</div></div>
+    <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${sum.total_km ? sum.total_km.toLocaleString() + " km" : "—"}</div></div>
+    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${sum.total_co2_kg ? sum.total_co2_kg.toLocaleString() + " kg" : "—"}</div></div>
+  </div>
+  ${(csp.depot_plans || [])
+    .map(
+      (dp) => `
+    <div style="margin-top:.5rem;font-size:.75rem;font-weight:600;color:var(--sub);">${dp.depot.name}</div>
+    ${(dp.assignments || [])
+      .map(
+        (a) => `
+      <div style="font-size:.72rem;padding:.18rem 0;border-bottom:1px solid var(--border);">
+        🚛 <b>${a.truck_id}</b> — ${a.load_kg.toLocaleString()} kg · ${a.distance_km} km
+        <span style="color:var(--sub);">${a.route.map((r) => r.name).join(" → ")}</span>
+      </div>`,
+      )
+      .join("")}
+  `,
+    )
+    .join("")}
+</div>`;
+          } else if (triggered_count === 0) {
+            html += `<div style="font-size:.78rem;color:var(--green);margin-top:.5rem;">✅ All materials are sufficiently stocked — no reorder needed.</div>`;
+          }
+
+          html += `</div>`;
+          out.innerHTML = html;
+        } catch (e) {
+          out.innerHTML = `<div style="color:var(--red);font-size:.79rem;margin-top:.5rem;">Error: ${e.message}</div>`;
+        }
+      }
+
+      /* ── Reorder Transaction Log ── */
+      async function loadReorderLogs() {
+        const out = document.getElementById("reorder-log-output");
+        out.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;">Loading…</div>`;
+        try {
+          const res = await fetch("/api/reorder-logs");
+          const data = await res.json();
+          const logs = data.logs || [];
+          if (!logs.length) {
+            out.innerHTML = `<div class="sub" style="text-align:center;padding:1.2rem 0;">No reorder events recorded yet.<br><span style="font-size:.72rem;">Events appear here automatically when stock falls below the reorder threshold.</span></div>`;
+            return;
+          }
+          let html = `
+<table style="width:100%;border-collapse:collapse;font-size:.76rem;">
+  <thead>
+    <tr style="text-align:left;border-bottom:2px solid var(--border);color:var(--sub);font-size:.72rem;">
+      <th style="padding:.35rem .5rem;">#</th>
+      <th style="padding:.35rem .5rem;">Timestamp (UTC)</th>
+      <th style="padding:.35rem .5rem;">Material</th>
+      <th style="padding:.35rem .5rem;">Qty Ordered</th>
+      <th style="padding:.35rem .5rem;">Days Left</th>
+      <th style="padding:.35rem .5rem;">Stockout</th>
+      <th style="padding:.35rem .5rem;">EMA Rate</th>
+      <th style="padding:.35rem .5rem;">Site</th>
+      <th style="padding:.35rem .5rem;">Source</th>
+      <th style="padding:.35rem .5rem;">Status</th>
+    </tr>
+  </thead>
+  <tbody>`;
+          logs.forEach((lg, i) => {
+            const isCrit = lg.critical;
+            const rowBg = isCrit
+              ? "rgba(192,57,43,.07)"
+              : i % 2 === 0
+                ? "transparent"
+                : "rgba(255,255,255,.02)";
+            const badge = isCrit
+              ? `<span style="background:rgba(192,57,43,.15);color:var(--red);padding:.1rem .4rem;border-radius:99px;font-size:.68rem;">🚨 Critical</span>`
+              : `<span style="background:rgba(230,126,34,.12);color:var(--amber);padding:.1rem .4rem;border-radius:99px;font-size:.68rem;">⚠ Triggered</span>`;
+            const srcBadge =
+              lg.source === "batch-check"
+                ? `<span style="background:rgba(99,102,241,.12);color:#818cf8;padding:.1rem .4rem;border-radius:99px;font-size:.67rem;">Batch</span>`
+                : `<span style="background:rgba(20,184,166,.1);color:#2dd4bf;padding:.1rem .4rem;border-radius:99px;font-size:.67rem;">Daily Log</span>`;
+            const ts = lg.timestamp
+              ? lg.timestamp.replace("T", " ").replace("Z", "")
+              : "—";
+            html += `
+    <tr style="background:${rowBg};border-bottom:1px solid var(--border);">
+      <td style="padding:.38rem .5rem;color:var(--sub);">${lg.id}</td>
+      <td style="padding:.38rem .5rem;white-space:nowrap;">${ts}</td>
+      <td style="padding:.38rem .5rem;font-weight:600;">${lg.material}</td>
+      <td style="padding:.38rem .5rem;">${lg.reorder_qty != null ? lg.reorder_qty.toLocaleString() : "—"} <span style="color:var(--sub);">${lg.unit || ""}</span></td>
+      <td style="padding:.38rem .5rem;">${lg.days_remaining != null ? lg.days_remaining.toFixed(1) + "d" : "—"}</td>
+      <td style="padding:.38rem .5rem;">${lg.stockout_date || "—"}</td>
+      <td style="padding:.38rem .5rem;">${lg.ema_rate != null ? lg.ema_rate.toFixed(2) : "—"} ${lg.unit || ""}/day</td>
+      <td style="padding:.38rem .5rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lg.dest_name || "—"}</td>
+      <td style="padding:.38rem .5rem;">${srcBadge}</td>
+      <td style="padding:.38rem .5rem;">${badge}</td>
+    </tr>`;
+          });
+          html += `</tbody></table>
+<div class="sub" style="font-size:.71rem;margin-top:.55rem;text-align:right;">${data.total} total event${data.total !== 1 ? "s" : ""}</div>`;
+          out.innerHTML = html;
+        } catch (e) {
+          out.innerHTML = `<div style="color:var(--red);font-size:.79rem;">Error loading logs: ${e.message}</div>`;
+        }
+      }
+
+      async function clearReorderLogs() {
+        if (!confirm("Clear ALL reorder log entries? This cannot be undone."))
+          return;
+        try {
+          await fetch("/api/reorder-logs", { method: "DELETE" });
+          toast("Reorder log cleared.", "success");
+          loadReorderLogs();
+        } catch (e) {
+          toast("Failed to clear logs: " + e.message, "error");
         }
       }
 
@@ -2134,13 +2983,650 @@
         }
       }
 
+      /* ── Supply Network planner ── */
+      let snPendingPlace = null;
+      let snDestination = null;
+
+      async function snLoadNetworkInfo() {
+        try {
+          const info = await api("GET", "/supply/network");
+          document.getElementById("sn-depot-count").textContent = info.depots;
+          document.getElementById("sn-store-count").textContent = info.stores;
+          document.getElementById("sn-depot-names").textContent =
+            info.depot_names ? info.depot_names.join("  ·  ") : "—";
+        } catch (e) {
+          /* non-critical */
+        }
+      }
+
+      function buildSnReqRows() {
+        document.getElementById("sn-req-rows").innerHTML = materials
+          .map(
+            (m) => `
+<div style="display:flex;align-items:center;gap:.7rem;padding:.35rem 0;border-bottom:1px solid var(--border);">
+  <span style="flex:1;font-weight:600;font-size:.84rem;">${m.name}</span>
+  <span class="sub" style="font-size:.72rem;min-width:90px;">${m.unit} · ${m.weight_per_unit} kg/unit</span>
+  <div class="field" style="margin:0;min-width:110px;">
+    <input id="sn-qty-${m.name}" type="number" value="0" min="0" step="any"
+      style="width:100%;text-align:right;" placeholder="0"/>
+  </div>
+</div>`,
+          )
+          .join("");
+      }
+
+      async function snGeoSearch() {
+        const q = document.getElementById("sn-geo-input").value.trim();
+        if (!q) return toast("Enter a destination to search.", "warn");
+        const res = document.getElementById("sn-geo-results");
+        res.innerHTML = `<div style="padding:.5rem .7rem;color:var(--sub);font-size:.8rem;">Searching…</div>`;
+        res.style.display = "block";
+        try {
+          const data = await api("GET", `/geocode?q=${encodeURIComponent(q)}`);
+          if (!data.length) {
+            res.innerHTML = `<div style="padding:.5rem .7rem;color:var(--sub);font-size:.8rem;">No results.</div>`;
+            return;
+          }
+          res._candidates = data;
+          res.innerHTML = data
+            .map(
+              (c, i) => `
+<div onclick="snSelectDest(${i})" style="
+  padding:.45rem .7rem;cursor:pointer;font-size:.8rem;
+  border-bottom:1px solid var(--border);transition:background .15s;"
+  onmouseover="this.style.background='var(--surface2)'"
+  onmouseout="this.style.background=''">
+  <span style="font-weight:600;">${c.name}</span>
+  <span class="sub" style="font-size:.72rem;margin-left:.4rem;">${c.display_name}</span>
+</div>`,
+            )
+            .join("");
+        } catch (e) {
+          res.innerHTML = `<div style="padding:.5rem .7rem;color:var(--red);font-size:.8rem;">Error: ${e.message}</div>`;
+        }
+      }
+
+      function snSelectDest(idx) {
+        const c = document.getElementById("sn-geo-results")._candidates[idx];
+        snDestination = { name: c.name, lat: c.lat, lon: c.lon };
+        document.getElementById("sn-geo-results").style.display = "none";
+        document.getElementById("sn-geo-input").value = c.name;
+        const badge = document.getElementById("sn-dest-badge");
+        badge.style.display = "flex";
+        document.getElementById("sn-dest-label").textContent =
+          `${c.name}  (${c.lat.toFixed(4)}, ${c.lon.toFixed(4)})`;
+        if (!deliveryMap) initDeliveryMap();
+        deliveryMap.setView([c.lat, c.lon], 7);
+        toast(`Destination set: ${c.name}`, "ok");
+      }
+
+      function snClearDest() {
+        snDestination = null;
+        document.getElementById("sn-geo-input").value = "";
+        document.getElementById("sn-dest-badge").style.display = "none";
+        document.getElementById("sn-geo-results").style.display = "none";
+      }
+
+      async function planSupply() {
+        if (!snDestination) return toast("Set a destination first.", "warn");
+
+        const requirements = [];
+        materials.forEach((m) => {
+          const v =
+            parseFloat(document.getElementById(`sn-qty-${m.name}`)?.value) || 0;
+          if (v > 0) requirements.push({ material: m.name, qty: v });
+        });
+        if (!requirements.length)
+          return toast("Enter at least one material requirement.", "warn");
+
+        toast("Sourcing materials from supply network…", "info");
+        document.getElementById("sn-output").innerHTML = `
+<div class="card" style="text-align:center;padding:2rem;">
+  <div style="font-size:1.8rem;margin-bottom:.5rem;">⚙️</div>
+  <div style="color:var(--sub);">Running Clarke-Wright VRP optimizer…</div>
+</div>`;
+
+        try {
+          const res = await api("POST", "/supply/plan", {
+            destination: snDestination,
+            requirements,
+          });
+          renderSupplyPlan(res);
+        } catch (e) {
+          toast(e.message, "err");
+          document.getElementById("sn-output").innerHTML = `
+<div class="card"><div class="banner b-err">⚠ ${e.message}</div></div>`;
+        }
+      }
+
+      function renderSupplyPlan(plan) {
+        const s = plan.summary;
+        const hasShortfalls = s.shortfalls > 0;
+
+        /* ─ summary bar ─ */
+        const summaryHtml = `
+<div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-bottom:.7rem;">
+  ${[
+    ["🚛", "Trucks", s.total_trucks],
+    ["🏭", "Depots", s.depots_used],
+    ["🏪", "Stores", s.stores_sourced],
+    ["📦", "Total kg", s.total_kg.toLocaleString()],
+    ["🛣️", "Total km", s.total_km.toFixed(0)],
+    ["🌿", "CO₂ kg", s.total_co2_kg.toFixed(1)],
+  ]
+    .map(
+      ([ic, label, val]) => `
+  <div class="card" style="margin:0;flex:1;min-width:100px;padding:.7rem .9rem;">
+    <div class="sub" style="font-size:.68rem;">${ic} ${label.toUpperCase()}</div>
+    <div style="font-size:1.3rem;font-weight:700;">${val}</div>
+  </div>`,
+    )
+    .join("")}
+</div>`;
+
+        /* ─ shortfalls ─ */
+        const shortfallHtml = hasShortfalls
+          ? `
+<div class="card" style="border-left:3px solid var(--amber);">
+  <div class="card-hd" style="color:var(--amber);">⚠ Shortfalls — Insufficient Stock</div>
+  ${plan.shortfalls
+    .map(
+      (sf) => `
+  <div style="display:flex;justify-content:space-between;font-size:.82rem;padding:.3rem 0;border-bottom:1px solid var(--border);">
+    <span style="font-weight:600;">${sf.material}</span>
+    <span>Need <b>${sf.needed_kg.toLocaleString()} kg</b> · Available <b>${sf.available_kg.toLocaleString()} kg</b>
+      · <span style="color:var(--red);">Short ${sf.shortfall_kg.toLocaleString()} kg</span></span>
+  </div>`,
+    )
+    .join("")}
+</div>`
+          : "";
+
+        /* ─ depot plans ─ */
+        const TRUCK_COLORS = [
+          "#e74c3c",
+          "#3498db",
+          "#2ecc71",
+          "#e67e22",
+          "#9b59b6",
+          "#1abc9c",
+          "#f39c12",
+          "#e91e63",
+        ];
+        let colorIdx = 0;
+        const depotHtml = plan.depot_plans
+          .map(
+            (dp) => `
+<div class="card">
+  <div class="card-hd">🏭 ${dp.depot.name}</div>
+  <div class="sub" style="font-size:.72rem;margin-bottom:.7rem;">
+    ${dp.depot.lat.toFixed(3)}, ${dp.depot.lon.toFixed(3)} · ${dp.assignments.length} truck${dp.assignments.length !== 1 ? "s" : ""}
+  </div>
+  <div class="grid">
+  ${dp.assignments
+    .map((a) => {
+      const col = TRUCK_COLORS[colorIdx++ % TRUCK_COLORS.length];
+      const u = a.util_pct;
+      const fc =
+        u < 40 ? "var(--red)" : u < 70 ? "var(--amber)" : "var(--green)";
+      const mats =
+        a.stops
+          .flatMap((st) => st.materials.map((m) => m.material))
+          .join(", ") || "—";
+      return `
+<div class="card" style="margin:0;border-left:3px solid ${col};">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.55rem;">
+    <span style="font-weight:700;color:${col};">🚛 ${a.truck_id}</span>
+    <span class="sub" style="font-size:.7rem;">${(a.capacity_kg / 1000).toFixed(1)}t cap</span>
+  </div>
+  <div class="prog" style="margin-bottom:.6rem;"><div class="prog-fill" style="width:${u}%;background:${fc};"></div></div>
+  <div class="stats" style="margin-bottom:.55rem;">
+    <div class="stat"><div class="stat-label">Loaded</div><div class="stat-value">${a.load_kg.toLocaleString()} kg</div></div>
+    <div class="stat"><div class="stat-label">Util.</div><div class="stat-value ${u < 40 ? "bad" : u < 70 ? "warn" : "good"}">${u.toFixed(0)}%</div></div>
+    <div class="stat"><div class="stat-label">Dist.</div><div class="stat-value">${a.distance_km.toFixed(0)} km</div></div>
+    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${a.co2_kg.toFixed(1)} kg</div></div>
+  </div>
+  <div class="sub" style="font-size:.72rem;margin-bottom:.25rem;"><b>Materials:</b> ${mats}</div>
+  <div class="sub" style="font-size:.72rem;"><b>Route:</b> ${a.route.map((r) => r.name).join(" → ")}</div>
+</div>`;
+    })
+    .join("")}
+  </div>
+</div>`,
+          )
+          .join("");
+
+        document.getElementById("sn-output").innerHTML =
+          summaryHtml + shortfallHtml + depotHtml;
+
+        /* ─ draw map ─ */
+        drawSupplyPlanMap(plan);
+      }
+
+      function drawSupplyPlanMap(plan) {
+        if (!deliveryMap) initDeliveryMap();
+        clearMapLayers();
+        const bounds = L.latLngBounds();
+        const TRUCK_COLORS = [
+          "#e74c3c",
+          "#3498db",
+          "#2ecc71",
+          "#e67e22",
+          "#9b59b6",
+          "#1abc9c",
+          "#f39c12",
+          "#e91e63",
+        ];
+        let colorIdx = 0;
+
+        /* destination pin */
+        const dest = plan.destination;
+        const destM = L.marker([dest.lat, dest.lon], {
+          icon: L.divIcon({
+            className: "",
+            html: `<div style="background:#c0392b;width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-size:17px;">📍</div>
+                   <div style="margin-top:2px;background:#c0392b;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis;font-family:sans-serif;">${dest.name}</div>`,
+            iconSize: [34, 52],
+            iconAnchor: [17, 17],
+          }),
+        })
+          .addTo(deliveryMap)
+          .bindPopup(
+            `<b style="color:#c0392b;">📍 Destination</b><br/>${dest.name}<br/><small>${dest.lat.toFixed(4)}, ${dest.lon.toFixed(4)}</small>`,
+          );
+        mapMarkers.push(destM);
+        bounds.extend([dest.lat, dest.lon]);
+
+        /* per depot → per truck route */
+        plan.depot_plans.forEach((dp) => {
+          dp.assignments.forEach((a) => {
+            const col = TRUCK_COLORS[colorIdx++ % TRUCK_COLORS.length];
+            const routeCoords = a.route.map((r) => [r.lat, r.lon]);
+
+            const poly = L.polyline(routeCoords, {
+              color: col,
+              weight: 3,
+              opacity: 0.82,
+            }).addTo(deliveryMap);
+            mapPolylines.push(poly);
+
+            a.route.forEach((stop, si) => {
+              const isDepot = si === 0;
+              const isDest = si === a.route.length - 1;
+              const sz = isDepot ? 30 : isDest ? 34 : 22;
+              const icon = isDepot ? "🏭" : isDest ? "📍" : "🏪";
+              const m = L.marker([stop.lat, stop.lon], {
+                icon: L.divIcon({
+                  className: "",
+                  html: `<div style="background:${isDepot ? "#2c3e50" : isDest ? "#c0392b" : col};width:${sz}px;height:${sz}px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:${sz * 0.5}px;">${icon}</div>
+                  <div style="margin-top:2px;background:${isDepot ? "#2c3e50" : col};color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;font-family:sans-serif;">${stop.name}</div>`,
+                  iconSize: [sz, sz + 18],
+                  iconAnchor: [sz / 2, sz / 2],
+                }),
+              }).addTo(deliveryMap).bindPopup(`
+<div style="font-size:12px;min-width:150px;">
+  <b style="color:${col};">🚛 ${a.truck_id}</b><br/>
+  <b>${stop.name}</b><br/>
+  <small style="color:#777;">${stop.lat.toFixed(4)}, ${stop.lon.toFixed(4)}</small>
+</div>`);
+              mapMarkers.push(m);
+              bounds.extend([stop.lat, stop.lon]);
+            });
+          });
+        });
+
+        if (bounds.isValid())
+          deliveryMap.fitBounds(bounds, { padding: [60, 60] });
+      }
+
       /* Init */
+      // ═══════════════════════════════════════════════════════════════
+      //  PROJECT SETUP — one-time site config
+      // ═══════════════════════════════════════════════════════════════
+      let _setupCoords = null;
+      let _setupCandidates = [];
+
+      async function initSetupOverlay() {
+        // If project config already saved, skip overlay
+        try {
+          const cfg = await (await fetch("/api/project-config")).json();
+          if (cfg && cfg.dest_lat) {
+            document.getElementById("setup-overlay").style.display = "none";
+            // Propagate saved site to siteCoords so auto-reorder panel is pre-filled
+            siteCoords = {
+              lat: cfg.dest_lat,
+              lon: cfg.dest_lon,
+              name: cfg.dest_name,
+            };
+            updateArSiteBadge();
+            pollPendingBadge();
+            return;
+          }
+        } catch (_) {}
+        // Show overlay
+        document.getElementById("setup-overlay").style.display = "flex";
+      }
+
+      async function setupGeoSearch() {
+        const q = document.getElementById("setup-geo-input").value.trim();
+        if (!q) return;
+        const res = document.getElementById("setup-geo-results");
+        res.innerHTML = `<div class="sub" style="font-size:.74rem;">Searching…</div>`;
+        try {
+          const data = await (
+            await fetch(`/api/geocode?q=${encodeURIComponent(q)}`)
+          ).json();
+          _setupCandidates = data.results || [];
+          if (!_setupCandidates.length) {
+            res.innerHTML = `<div class="sub" style="font-size:.74rem;color:var(--red);">No results found.</div>`;
+            return;
+          }
+          res.innerHTML = _setupCandidates
+            .slice(0, 5)
+            .map(
+              (c, i) => `
+            <div onclick="setupSelectSite(${i})" style="cursor:pointer;padding:.38rem .6rem;
+              border-radius:6px;font-size:.76rem;border:1px solid var(--border);
+              margin-top:.3rem;background:var(--surface2);" 
+              onmouseover="this.style.borderColor='var(--accent)'"
+              onmouseout="this.style.borderColor='var(--border)'">
+              📍 ${c.name}
+            </div>`,
+            )
+            .join("");
+        } catch (e) {
+          res.innerHTML = `<div style="color:var(--red);font-size:.74rem;">Error: ${e.message}</div>`;
+        }
+      }
+
+      function setupSelectSite(idx) {
+        const c = _setupCandidates[idx];
+        _setupCoords = { lat: c.lat, lon: c.lon, name: c.name };
+        document.getElementById("setup-geo-results").innerHTML = "";
+        document.getElementById("setup-coords-display").style.display = "block";
+        document.getElementById("setup-coords-label").textContent =
+          `${c.name} (${c.lat.toFixed(4)}, ${c.lon.toFixed(4)})`;
+      }
+
+      async function saveProjectSetup() {
+        if (!_setupCoords) {
+          alert("Please search and select a destination site first.");
+          return;
+        }
+        const name =
+          document.getElementById("setup-project-name").value.trim() ||
+          "BuildSense Project";
+        try {
+          const cfg = await api("POST", "/project-config", {
+            name,
+            dest_lat: _setupCoords.lat,
+            dest_lon: _setupCoords.lon,
+            dest_name: _setupCoords.name,
+          });
+          // Propagate to auto-reorder panel
+          siteCoords = {
+            lat: cfg.dest_lat,
+            lon: cfg.dest_lon,
+            name: cfg.dest_name,
+          };
+          updateArSiteBadge();
+          document.getElementById("setup-overlay").style.display = "none";
+          toast(`Project site saved: ${cfg.dest_name}`, "ok");
+          pollPendingBadge();
+        } catch (e) {
+          alert("Failed to save: " + e.message);
+        }
+      }
+
+      function skipSetup() {
+        document.getElementById("setup-overlay").style.display = "none";
+        pollPendingBadge();
+      }
+
+      // Helper: update the AR site badge when siteCoords changes
+      function updateArSiteBadge() {
+        const badge = document.getElementById("ar-site-badge");
+        const label = document.getElementById("ar-site-label");
+        if (!badge) return;
+        if (siteCoords) {
+          label.textContent = siteCoords.name;
+          badge.style.display = "flex";
+        } else {
+          badge.style.display = "none";
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      //  NAV BADGE — polls pending count every 30s
+      // ═══════════════════════════════════════════════════════════════
+      let _badgePollTimer = null;
+
+      async function refreshPendingBadge() {
+        try {
+          const data = await (
+            await fetch("/api/pending-reorders/count")
+          ).json();
+          const n = data.pending_count || 0;
+          const badge = document.getElementById("reorder-nav-badge");
+          if (n > 0) {
+            badge.textContent = n;
+            badge.style.display = "inline-flex";
+          } else {
+            badge.style.display = "none";
+          }
+        } catch (_) {}
+      }
+
+      function pollPendingBadge() {
+        refreshPendingBadge();
+        clearInterval(_badgePollTimer);
+        _badgePollTimer = setInterval(refreshPendingBadge, 30000);
+      }
+
+      // ═══════════════════════════════════════════════════════════════
+      //  PENDING REORDERS — approval queue
+      // ═══════════════════════════════════════════════════════════════
+      async function loadPendingReorders() {
+        const out = document.getElementById("pending-reorders-output");
+        out.innerHTML = `<div class="sub" style="text-align:center;padding:1rem;">Loading…</div>`;
+        try {
+          const data = await (
+            await fetch("/api/pending-reorders?status=pending")
+          ).json();
+          const items = data.items || [];
+
+          // Update in-page count badge
+          const cb = document.getElementById("pending-count-badge");
+          if (items.length) {
+            cb.textContent = items.length;
+            cb.style.display = "inline";
+          } else {
+            cb.style.display = "none";
+          }
+
+          if (!items.length) {
+            out.innerHTML = `
+<div style="text-align:center;padding:1.6rem 0;">
+  <div style="font-size:2rem;margin-bottom:.5rem;">✅</div>
+  <div style="font-weight:600;color:var(--text);">No pending reorders</div>
+  <div class="sub" style="font-size:.76rem;margin-top:.3rem;">The EMA engine will raise requests here automatically as stock falls.</div>
+</div>`;
+            return;
+          }
+
+          // Check if project site is configured
+          let hasSite = false;
+          try {
+            const cfg = await (await fetch("/api/project-config")).json();
+            hasSite = !!(cfg && cfg.dest_lat);
+            if (hasSite && !siteCoords) {
+              siteCoords = {
+                lat: cfg.dest_lat,
+                lon: cfg.dest_lon,
+                name: cfg.dest_name,
+              };
+              updateArSiteBadge();
+            }
+          } catch (_) {}
+
+          let html = "";
+          if (!hasSite) {
+            html += `<div style="padding:.6rem .9rem;background:rgba(251,191,36,.08);
+              border-left:3px solid var(--amber);border-radius:var(--radius);
+              font-size:.77rem;margin-bottom:.85rem;">
+              ⚠ <b>Project site not configured.</b> 
+              <a href="#" onclick="document.getElementById('setup-overlay').style.display='flex';return false;"
+                style="color:var(--accent);">Open Setup →</a>
+              Approval will still work once the site is set.
+            </div>`;
+          }
+
+          items.forEach((item) => {
+            const isCrit = item.critical;
+            const borderColor = isCrit ? "var(--red)" : "var(--amber)";
+            const bg = isCrit
+              ? "rgba(248,113,113,.07)"
+              : "rgba(251,191,36,.06)";
+            html += `
+<div id="pending-item-${item.id}" style="margin-bottom:.75rem;padding:.85rem 1rem;
+  background:${bg};border-left:3px solid ${borderColor};border-radius:var(--radius);">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.5rem;">
+    <div>
+      <div style="font-weight:700;font-size:.9rem;color:var(--text);">
+        ${isCrit ? "🚨" : "⚠️"} ${item.material}
+        ${
+          isCrit
+            ? `<span style="margin-left:.4rem;font-size:.68rem;background:rgba(248,113,113,.2);
+          color:var(--red);padding:.1rem .4rem;border-radius:99px;">CRITICAL</span>`
+            : ""
+        }
+      </div>
+      <div class="sub" style="font-size:.74rem;margin-top:.25rem;">
+        <b>${item.reorder_qty != null ? item.reorder_qty.toLocaleString() : "—"} ${item.unit}</b> needed
+        &nbsp;·&nbsp; ${item.days_remaining != null ? item.days_remaining.toFixed(1) + " days left" : "stock low"}
+        &nbsp;·&nbsp; Stockout: <b>${item.stockout_date || "—"}</b>
+        &nbsp;·&nbsp; EMA: ${item.ema_rate != null ? item.ema_rate.toFixed(2) : "—"} ${item.unit}/day
+      </div>
+      <div class="sub" style="font-size:.7rem;margin-top:.15rem;">
+        Detected ${item.timestamp ? item.timestamp.replace("T", " ").replace("Z", "") + " UTC" : "—"}
+        &nbsp;·&nbsp; via ${item.source === "batch-check" ? "Batch Scan" : "Daily Log"}
+      </div>
+    </div>
+    <div style="display:flex;gap:.45rem;flex-shrink:0;align-items:center;">
+      <button class="btn btn-primary" style="font-size:.78rem;padding:.38rem .85rem;"
+        onclick="approvePendingReorder(${item.id}, this)">
+        ✓ Approve &amp; Book
+      </button>
+      <button class="btn btn-ghost" style="font-size:.78rem;padding:.38rem .75rem;color:var(--red);"
+        onclick="rejectPendingReorder(${item.id}, this)">
+        ✕ Reject
+      </button>
+    </div>
+  </div>
+  <div id="pending-item-result-${item.id}"></div>
+</div>`;
+          });
+
+          out.innerHTML = html;
+        } catch (e) {
+          out.innerHTML = `<div style="color:var(--red);font-size:.79rem;">Error: ${e.message}</div>`;
+        }
+      }
+
+      async function approvePendingReorder(itemId, btn) {
+        btn.disabled = true;
+        btn.textContent = "Sourcing…";
+        const resultDiv = document.getElementById(
+          `pending-item-result-${itemId}`,
+        );
+        resultDiv.innerHTML = `<div class="sub" style="font-size:.74rem;margin-top:.5rem;">
+          🔄 Finding nearest depot &amp; routing…</div>`;
+        try {
+          const res = await api(
+            "POST",
+            `/pending-reorders/approve/${itemId}`,
+            {},
+          );
+          const sp = res.supply_plan || {};
+          const sum = sp.summary || {};
+
+          // Build success card
+          let routeHTML = "";
+          (sp.depot_plans || []).forEach((dp) => {
+            const depotName = dp.depot?.name || dp.depot || "Depot";
+            routeHTML += `<div style="font-size:.74rem;font-weight:600;color:var(--sub);margin-top:.45rem;">${depotName}</div>`;
+            (dp.assignments || []).forEach((a) => {
+              routeHTML += `<div style="font-size:.72rem;padding:.15rem 0;border-bottom:1px solid var(--border);">
+                🚛 <b>${a.truck_id}</b> · ${a.load_kg?.toLocaleString() ?? "—"} kg · ${a.distance_km ?? "—"} km
+                <span style="color:var(--sub);">${(a.route || []).map((r) => r.name || r).join(" → ")}</span>
+              </div>`;
+            });
+          });
+
+          resultDiv.innerHTML = `
+<div style="margin-top:.6rem;padding:.65rem .85rem;background:var(--surface2);
+  border-radius:var(--radius);border:1px solid var(--border);">
+  <div style="font-weight:700;font-size:.78rem;color:var(--green);margin-bottom:.4rem;">
+    ✅ Order Approved &amp; Booked
+  </div>
+  <div class="stats" style="margin:.3rem 0;">
+    <div class="stat"><div class="stat-label">Trucks</div><div class="stat-value">${sum.total_trucks ?? "—"}</div></div>
+    <div class="stat"><div class="stat-label">Total kg</div><div class="stat-value">${sum.total_kg?.toLocaleString() ?? "—"}</div></div>
+    <div class="stat"><div class="stat-label">Distance</div><div class="stat-value">${sum.total_km?.toLocaleString() ?? "—"} km</div></div>
+    <div class="stat"><div class="stat-label">CO₂</div><div class="stat-value">${sum.total_co2_kg?.toLocaleString() ?? "—"} kg</div></div>
+  </div>
+  ${routeHTML}
+</div>`;
+
+          // Fade out the action buttons
+          btn
+            .closest("div[style*='display:flex']")
+            .querySelector("button:last-child").style.display = "none";
+          btn.textContent = "✓ Approved";
+          btn.style.background = "var(--green)";
+          btn.style.color = "#0d0f18";
+          btn.disabled = true;
+
+          // Update nav badge
+          refreshPendingBadge();
+          toast(`Reorder for ${res.item?.material} approved & booked!`, "ok");
+        } catch (e) {
+          resultDiv.innerHTML = `<div style="color:var(--red);font-size:.76rem;margin-top:.4rem;">Error: ${e.message}</div>`;
+          btn.disabled = false;
+          btn.textContent = "✓ Approve & Book";
+        }
+      }
+
+      async function rejectPendingReorder(itemId, btn) {
+        if (!confirm("Reject this reorder request?")) return;
+        btn.disabled = true;
+        try {
+          await api("POST", `/pending-reorders/reject/${itemId}`, {});
+          const card = document.getElementById(`pending-item-${itemId}`);
+          card.style.opacity = "0.4";
+          card.style.pointerEvents = "none";
+          const resultDiv = document.getElementById(
+            `pending-item-result-${itemId}`,
+          );
+          resultDiv.innerHTML = `<div style="font-size:.74rem;color:var(--sub);margin-top:.4rem;">✕ Rejected</div>`;
+          refreshPendingBadge();
+          toast("Reorder request rejected.", "warn");
+        } catch (e) {
+          toast("Error: " + e.message, "err");
+          btn.disabled = false;
+        }
+      }
+
       window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("p3-date").valueAsDate = new Date();
+        await initSetupOverlay();
         try {
           await loadMaterials();
           addTruck();
           addTruck();
+          buildSnReqRows();
+          snLoadNetworkInfo();
+          pollPendingBadge();
         } catch (e) {
           document.getElementById("mat-cards").innerHTML = `
 <div class="card" style="grid-column:1/-1;">

@@ -11,9 +11,13 @@ from typing import Dict, List
 from models.material import Material
 from models.delivery  import DeliveryPoint
 
-DATA_DIR           = os.path.dirname(__file__)
-MATERIALS_FILE     = os.path.join(DATA_DIR, "materials.json")
-SITES_FILE         = os.path.join(DATA_DIR, "sites.json")
+DATA_DIR              = os.path.dirname(__file__)
+MATERIALS_FILE        = os.path.join(DATA_DIR, "materials.json")
+SITES_FILE            = os.path.join(DATA_DIR, "sites.json")
+SUPPLY_NETWORK_FILE   = os.path.join(DATA_DIR, "supply_network.json")
+REORDER_LOG_FILE      = os.path.join(DATA_DIR, "reorder_log.json")
+PROJECT_CONFIG_FILE   = os.path.join(DATA_DIR, "project_config.json")
+PENDING_REORDERS_FILE = os.path.join(DATA_DIR, "pending_reorders.json")
 
 
 # ─────────────────────────────────────────────────────────────────── #
@@ -146,3 +150,149 @@ def save_sites(sites: List[DeliveryPoint]) -> None:
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SITES_FILE, "w") as fh:
         json.dump([s.to_dict() for s in sites], fh, indent=2)
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Supply Network                                                      #
+# ─────────────────────────────────────────────────────────────────── #
+
+def load_supply_network() -> dict:
+    """Load depots + stores from supply_network.json."""
+    if not os.path.exists(SUPPLY_NETWORK_FILE):
+        return {"depots": [], "stores": []}
+    with open(SUPPLY_NETWORK_FILE, "r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Reorder Transaction Logs                                            #
+# ─────────────────────────────────────────────────────────────────── #
+
+def load_reorder_logs() -> List[dict]:
+    """Return all persisted auto-reorder log entries (newest first)."""
+    if not os.path.exists(REORDER_LOG_FILE):
+        return []
+    with open(REORDER_LOG_FILE, "r", encoding="utf-8") as fh:
+        try:
+            return json.load(fh)
+        except json.JSONDecodeError:
+            return []
+
+
+def append_reorder_log(entry: dict) -> dict:
+    """
+    Persist a single reorder event.
+
+    Expected fields in *entry* (all strings/numbers):
+      material, unit, reorder_qty, days_remaining, stockout_date,
+      ema_rate, critical, dest_name, source (trigger source string),
+      timestamp (ISO 8601 string — caller should set this).
+
+    Returns the entry with an auto-assigned integer `id`.
+    """
+    logs = load_reorder_logs()
+    entry["id"] = (logs[0]["id"] + 1) if logs else 1   # newest first → highest id
+    # Prepend so list stays newest-first
+    logs.insert(0, entry)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(REORDER_LOG_FILE, "w", encoding="utf-8") as fh:
+        json.dump(logs, fh, indent=2)
+    return entry
+
+
+def clear_reorder_logs() -> None:
+    """Wipe all reorder logs."""
+    if os.path.exists(REORDER_LOG_FILE):
+        os.remove(REORDER_LOG_FILE)
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Project Site Config (saved once at project start)                   #
+# ─────────────────────────────────────────────────────────────────── #
+
+def load_project_config() -> dict:
+    """
+    Return the project-level config dict.
+    Keys: name, dest_lat, dest_lon, dest_name, created_at
+    Returns {} if not yet configured.
+    """
+    if not os.path.exists(PROJECT_CONFIG_FILE):
+        return {}
+    with open(PROJECT_CONFIG_FILE, "r", encoding="utf-8") as fh:
+        try:
+            return json.load(fh)
+        except json.JSONDecodeError:
+            return {}
+
+
+def save_project_config(config: dict) -> dict:
+    """Persist project config. Merges into existing if present."""
+    existing = load_project_config()
+    existing.update(config)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(PROJECT_CONFIG_FILE, "w", encoding="utf-8") as fh:
+        json.dump(existing, fh, indent=2)
+    return existing
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Pending Reorders queue                                              #
+# ─────────────────────────────────────────────────────────────────── #
+
+def load_pending_reorders() -> List[dict]:
+    """Return all pending reorder items (newest first)."""
+    if not os.path.exists(PENDING_REORDERS_FILE):
+        return []
+    with open(PENDING_REORDERS_FILE, "r", encoding="utf-8") as fh:
+        try:
+            return json.load(fh)
+        except json.JSONDecodeError:
+            return []
+
+
+def _save_pending_reorders(items: List[dict]) -> None:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(PENDING_REORDERS_FILE, "w", encoding="utf-8") as fh:
+        json.dump(items, fh, indent=2)
+
+
+def append_pending_reorder(entry: dict) -> dict:
+    """
+    Add a new pending reorder item.
+    Auto-assigns an integer id. Status starts as 'pending'.
+    Deduplicates: if a pending entry for the same material already exists,
+    updates it instead of adding a duplicate.
+    """
+    items = load_pending_reorders()
+    # Dedup — update existing pending item for same material
+    for existing in items:
+        if (existing["material"] == entry["material"]
+                and existing["status"] == "pending"):
+            existing.update(entry)
+            existing["status"] = "pending"
+            _save_pending_reorders(items)
+            return existing
+    # New entry
+    entry["id"] = (max((i["id"] for i in items), default=0) + 1)
+    entry["status"] = "pending"
+    items.insert(0, entry)
+    _save_pending_reorders(items)
+    return entry
+
+
+def update_pending_reorder(item_id: int, status: str, extra: dict = None) -> dict:
+    """Set status of a pending reorder item ('approved' | 'rejected')."""
+    items = load_pending_reorders()
+    for item in items:
+        if item["id"] == item_id:
+            item["status"] = status
+            if extra:
+                item.update(extra)
+            _save_pending_reorders(items)
+            return item
+    raise KeyError(f"Pending reorder id={item_id} not found.")
+
+
+def count_pending_reorders() -> int:
+    """Count items with status='pending' — used for nav badge."""
+    return sum(1 for i in load_pending_reorders() if i.get("status") == "pending")

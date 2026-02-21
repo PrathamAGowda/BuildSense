@@ -208,6 +208,58 @@
             "quantity": 10.0
           }
         ]
+      },
+      {
+        "phase_name": "Foundation1",
+        "planned_qty": 200.0,
+        "ordered_qty": 212.0,
+        "consumed_qty": 205.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 7.0,
+        "daily_usage": [
+          {
+            "date": "2026-02-20",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-21",
+            "quantity": 50.0
+          },
+          {
+            "date": "2026-02-20",
+            "quantity": 100.0
+          },
+          {
+            "date": "2026-02-23",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-23",
+            "quantity": 15.0
+          }
+        ]
+      },
+      {
+        "phase_name": "F1",
+        "planned_qty": 200.0,
+        "ordered_qty": 212.0,
+        "consumed_qty": 90.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 122.0,
+        "daily_usage": [
+          {
+            "date": "2026-02-20",
+            "quantity": 20.0
+          },
+          {
+            "date": "2026-02-21",
+            "quantity": 30.0
+          },
+          {
+            "date": "2026-02-21",
+            "quantity": 40.0
+          }
+        ]
       }
     ]
   },
@@ -370,7 +422,26 @@
     "buffer_pct": 12.0,
     "weight_per_unit": 5.0,
     "priority": 6,
-    "history": []
+    "history": [
+      {
+        "phase_name": "Trial1",
+        "planned_qty": 150.0,
+        "ordered_qty": 168.0,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 168.0,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "Foundation1",
+        "planned_qty": 150.0,
+        "ordered_qty": 168.0,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 168.0,
+        "daily_usage": []
+      }
+    ]
   },
   "Glass": {
     "name": "Glass",

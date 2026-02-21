@@ -1,0 +1,97 @@
+[
+  {
+    "timestamp": "2026-02-21T00:19:28.001279Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 434.44,
+    "days_remaining": 4.2,
+    "stockout_date": "2026-02-25",
+    "ema_rate": 29.275,
+    "critical": false,
+    "dest_name": "Bangalore Site",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 5
+  },
+  {
+    "timestamp": "2026-02-21T00:19:17.147375Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 434.44,
+    "days_remaining": 4.2,
+    "stockout_date": "2026-02-25",
+    "ema_rate": 29.275,
+    "critical": false,
+    "dest_name": "Bangalore Site",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "triggered",
+    "id": 4
+  },
+  {
+    "timestamp": "2026-02-21T00:01:41.716527Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 348.74,
+    "days_remaining": 6.9,
+    "stockout_date": "2026-02-27",
+    "ema_rate": 23.5,
+    "critical": false,
+    "dest_name": "Bangalore Site",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 3
+  },
+  {
+    "timestamp": "2026-02-21T00:01:03.462740Z",
+    "source": "batch-check",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 348.74,
+    "days_remaining": 6.9,
+    "stockout_date": "2026-02-27",
+    "ema_rate": 23.5,
+    "critical": false,
+    "dest_name": "Bangalore Site",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "triggered",
+    "id": 2
+  },
+  {
+    "timestamp": "2026-02-20T23:42:07.636323Z",
+    "source": "batch-check",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 348.74,
+    "days_remaining": 6.9,
+    "stockout_date": "2026-02-27",
+    "ema_rate": 23.5,
+    "critical": false,
+    "dest_name": "Bangalore Site",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "triggered",
+    "id": 1
+  }
+]
