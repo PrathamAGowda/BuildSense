@@ -27,6 +27,7 @@ from data.store import (
     load_project_config, save_project_config,
     load_pending_reorders, append_pending_reorder,
     update_pending_reorder, count_pending_reorders,
+    list_projects, create_project, get_project, delete_project,
 )
 from engine.supply_engine import plan_supply
 from engine.auto_reorder_engine import check_auto_reorder, check_all_materials
@@ -58,6 +59,11 @@ FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 CORS(app)
+
+
+def _pid() -> str | None:
+    """Read the active project id from the X-Project-Id request header."""
+    return request.headers.get("X-Project-Id") or None
 
 
 @app.get("/")
@@ -102,14 +108,14 @@ def _material_to_json(mat: Material) -> dict:
 
 @app.get("/api/materials")
 def get_materials():
-    mats = load_materials()
+    mats = load_materials(_pid())
     return jsonify([_material_to_json(m) for m in mats.values()])
 
 
 @app.post("/api/materials")
 def add_material():
     body = request.json
-    mats = load_materials()
+    mats = load_materials(_pid())
     try:
         mat = add_custom_material(
             mats,
@@ -118,6 +124,7 @@ def add_material():
             baseline_buffer_pct=float(body["baseline_buffer_pct"]),
             weight_per_unit=float(body["weight_per_unit"]),
             priority=int(body["priority"]),
+            project_id=_pid(),
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
@@ -126,23 +133,23 @@ def add_material():
 
 @app.delete("/api/materials/<name>")
 def delete_material(name: str):
-    mats = load_materials()
+    mats = load_materials(_pid())
     key = name.strip().title()
     if key not in mats:
         return jsonify({"error": f"Material '{key}' not found."}), 404
     del mats[key]
-    save_materials(mats)
+    save_materials(mats, _pid())
     return jsonify({"deleted": key})
 
 
 @app.post("/api/materials/<name>/reset-buffer")
 def reset_buffer(name: str):
-    mats = load_materials()
+    mats = load_materials(_pid())
     key = name.strip().title()
     if key not in mats:
         return jsonify({"error": f"Material '{key}' not found."}), 404
     mats[key].buffer_pct = mats[key].baseline_buffer_pct
-    save_materials(mats)
+    save_materials(mats, _pid())
     return jsonify(_material_to_json(mats[key]))
 
 
@@ -152,13 +159,8 @@ def reset_buffer(name: str):
 
 @app.post("/api/phase/initialize")
 def initialize_phase():
-    """
-    Creates an active (in-progress) phase record for a material with
-    consumed_qty=0, so it shows up in the Phase 3 dropdown immediately.
-    ordered_qty is the recommended order (planned × buffer).
-    """
     body = request.json
-    mats = load_materials()
+    mats = load_materials(_pid())
     name = body.get("material", "").strip().title()
     if name not in mats:
         return jsonify({"error": f"Material '{name}' not found."}), 404
@@ -182,7 +184,7 @@ def initialize_phase():
         remaining_stock=ordered_qty,
     )
     mat.history.append(record)
-    save_materials(mats)
+    save_materials(mats, _pid())
     return jsonify({
         "material":    name,
         "unit":        mat.unit,
@@ -200,7 +202,7 @@ def initialize_phase():
 @app.post("/api/phase/smart-order")
 def smart_order():
     body = request.json
-    mats = load_materials()
+    mats = load_materials(_pid())
     name = body.get("material", "").strip().title()
     if name not in mats:
         return jsonify({"error": f"Material '{name}' not found."}), 404
@@ -240,7 +242,7 @@ def get_inventory_status():
 @app.post("/api/phase/log-daily-usage")
 def post_log_daily_usage():
     body = request.json
-    mats = load_materials()
+    mats = load_materials(_pid())
     name = body.get("material", "").strip().title()
     if name not in mats:
         return jsonify({"error": f"Material '{name}' not found."}), 404
@@ -252,7 +254,7 @@ def post_log_daily_usage():
         phase = log_daily_usage(mat, phase_index, qty_used, usage_date)
     except (IndexError, ValueError) as e:
         return jsonify({"error": str(e)}), 400
-    save_materials(mats)
+    save_materials(mats, _pid())
     trend = get_usage_trend(mat, phase_index, days=7)
 
     # ── Auto-reorder: run EMA prediction on every log ──────────── #
@@ -287,7 +289,7 @@ def post_log_daily_usage():
             "total_co2_kg":      sp.get("total_co2_kg"),
             "status":         "triggered",
         }
-        append_reorder_log(log_entry)
+        append_reorder_log(log_entry, _pid())
         # Push to pending approval queue (deduplicates by material)
         append_pending_reorder({
             "timestamp":      log_entry["timestamp"],
@@ -299,7 +301,7 @@ def post_log_daily_usage():
             "stockout_date":  log_entry["stockout_date"],
             "ema_rate":       log_entry["ema_rate"],
             "critical":       log_entry["critical"],
-        })
+        }, _pid())
 
     return jsonify({
         "material":               name,
@@ -341,7 +343,7 @@ def auto_reorder_check():
     sources the reorder quantity from the supply network via Clarke-Wright VRP.
     """
     body = request.json or {}
-    mats = load_materials()
+    mats = load_materials(_pid())
     name = body.get("material", "").strip().title()
     if name not in mats:
         return jsonify({"error": f"Material '{name}' not found."}), 404
@@ -381,7 +383,7 @@ def auto_reorder_all():
     multi-material supply plan for the triggered ones.
     """
     body      = request.json or {}
-    mats      = load_materials()
+    mats      = load_materials(_pid())
     dest_lat  = body.get("dest_lat")
     dest_lon  = body.get("dest_lon")
     dest_name = body.get("dest_name", "Construction Site")
@@ -444,8 +446,7 @@ def auto_reorder_all():
                 "total_distance_km": cp.get("total_distance_km"),
                 "total_co2_kg":      cp.get("total_co2_kg"),
                 "status":            "triggered",
-            })
-            # Push to pending approval queue (deduplicates by material)
+            }, _pid())
             append_pending_reorder({
                 "timestamp":      ts,
                 "source":         "batch-check",
@@ -456,7 +457,7 @@ def auto_reorder_all():
                 "stockout_date":  pred.get("stockout_date"),
                 "ema_rate":       pred.get("ema_rate"),
                 "critical":       a.get("critical", False),
-            })
+            }, _pid())
 
     return jsonify({
         "alerts":         alerts,
@@ -478,7 +479,7 @@ def get_reorder_logs():
     Optional query param: ?limit=N (default 100).
     """
     limit = int(request.args.get("limit", 100))
-    logs  = load_reorder_logs()
+    logs  = load_reorder_logs(_pid())
     return jsonify({"logs": logs[:limit], "total": len(logs)})
 
 
@@ -488,8 +489,53 @@ def delete_reorder_logs():
     DELETE /api/reorder-logs
     Clears all reorder log entries (irreversible).
     """
-    clear_reorder_logs()
+    clear_reorder_logs(_pid())
     return jsonify({"cleared": True})
+
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Projects — multi-project management                                 #
+# ─────────────────────────────────────────────────────────────────── #
+
+@app.get("/api/projects")
+def get_projects():
+    """GET /api/projects — list all projects."""
+    return jsonify(list_projects())
+
+
+@app.post("/api/projects")
+def post_create_project():
+    """
+    POST /api/projects
+    Body: { name, dest_lat, dest_lon, dest_name }
+    """
+    body = request.json or {}
+    for k in ("name", "dest_lat", "dest_lon", "dest_name"):
+        if k not in body:
+            return jsonify({"error": f"Missing field: {k}"}), 400
+    project = create_project(
+        name=body["name"],
+        dest_lat=float(body["dest_lat"]),
+        dest_lon=float(body["dest_lon"]),
+        dest_name=body["dest_name"],
+    )
+    return jsonify(project), 201
+
+
+@app.get("/api/projects/<project_id>")
+def get_single_project(project_id: str):
+    p = get_project(project_id)
+    if not p:
+        return jsonify({"error": "Not found"}), 404
+    return jsonify(p)
+
+
+@app.delete("/api/projects/<project_id>")
+def delete_single_project(project_id: str):
+    ok = delete_project(project_id)
+    if not ok:
+        return jsonify({"error": "Not found"}), 404
+    return jsonify({"deleted": project_id})
 
 
 # ─────────────────────────────────────────────────────────────────── #
@@ -538,39 +584,35 @@ def get_pending_reorders():
     Query: ?status=pending|approved|rejected|all (default: all)
     """
     status_filter = request.args.get("status", "all")
-    items = load_pending_reorders()
+    items = load_pending_reorders(_pid())
     if status_filter != "all":
         items = [i for i in items if i.get("status") == status_filter]
-    pending_count = sum(1 for i in load_pending_reorders() if i.get("status") == "pending")
+    pending_count = sum(1 for i in load_pending_reorders(_pid()) if i.get("status") == "pending")
     return jsonify({"items": items, "pending_count": pending_count})
 
 
 @app.post("/api/pending-reorders/approve/<int:item_id>")
 def approve_pending_reorder(item_id: int):
-    """
-    POST /api/pending-reorders/approve/<id>
-    Approves the pending reorder: auto-sources from supply network
-    using the saved project site location, then marks as approved
-    and writes a completed reorder log entry.
-    """
     from datetime import datetime as _dt
-    cfg = load_project_config()
+    pid = _pid()
+    # Use project config from the active project if possible, else fall back to legacy
+    proj = get_project(pid) if pid else {}
+    cfg  = proj if proj.get("dest_lat") else load_project_config()
     if not cfg.get("dest_lat"):
-        return jsonify({"error": "Project site not configured. Set it in Project Setup first."}), 400
+        return jsonify({"error": "Project site not configured."}), 400
 
-    items = load_pending_reorders()
+    items = load_pending_reorders(pid)
     item  = next((i for i in items if i["id"] == item_id), None)
     if not item:
         return jsonify({"error": f"Pending reorder id={item_id} not found."}), 404
     if item["status"] != "pending":
         return jsonify({"error": f"Item is already {item['status']}."}), 409
 
-    mats = load_materials()
+    mats = load_materials(pid)
     mat  = mats.get(item["material"])
     if not mat:
         return jsonify({"error": f"Material '{item['material']}' not found."}), 404
 
-    # Source from supply network
     supply_plan = None
     try:
         requirements = [{
@@ -590,7 +632,6 @@ def approve_pending_reorder(item_id: int):
     ts = _dt.utcnow().isoformat() + "Z"
     sp = supply_plan or {}
 
-    # Mark approved
     updated = update_pending_reorder(item_id, "approved", {
         "approved_at":       ts,
         "supply_plan":       supply_plan,
@@ -598,9 +639,8 @@ def approve_pending_reorder(item_id: int):
         "depots_used":       [d["depot"]["name"] if isinstance(d.get("depot"), dict) else str(d.get("depot", "")) for d in sp.get("depot_plans", [])],
         "total_distance_km": sp.get("total_distance_km"),
         "total_co2_kg":      sp.get("total_co2_kg"),
-    })
+    }, pid)
 
-    # Write to permanent reorder log
     append_reorder_log({
         "timestamp":         ts,
         "source":            "approved",
@@ -616,38 +656,33 @@ def approve_pending_reorder(item_id: int):
         "total_distance_km": updated.get("total_distance_km"),
         "total_co2_kg":      updated.get("total_co2_kg"),
         "status":            "approved",
-    })
+    }, pid)
 
-    pending_count = count_pending_reorders()
     return jsonify({
-        "approved":     True,
-        "item":         updated,
-        "supply_plan":  supply_plan,
-        "pending_count": pending_count,
+        "approved":      True,
+        "item":          updated,
+        "supply_plan":   supply_plan,
+        "pending_count": count_pending_reorders(pid),
     })
 
 
 @app.post("/api/pending-reorders/reject/<int:item_id>")
 def reject_pending_reorder(item_id: int):
-    """
-    POST /api/pending-reorders/reject/<id>
-    Rejects the pending reorder item.
-    """
     from datetime import datetime as _dt
+    pid = _pid()
     try:
         updated = update_pending_reorder(item_id, "rejected", {
             "rejected_at": _dt.utcnow().isoformat() + "Z",
-        })
+        }, pid)
     except KeyError as e:
         return jsonify({"error": str(e)}), 404
-    pending_count = count_pending_reorders()
-    return jsonify({"rejected": True, "item": updated, "pending_count": pending_count})
+    return jsonify({"rejected": True, "item": updated, "pending_count": count_pending_reorders(pid)})
 
 
 @app.get("/api/pending-reorders/count")
 def get_pending_count():
     """GET /api/pending-reorders/count — lightweight badge check."""
-    return jsonify({"pending_count": count_pending_reorders()})
+    return jsonify({"pending_count": count_pending_reorders(_pid())})
 
 
 # ─────────────────────────────────────────────────────────────────── #
@@ -657,7 +692,7 @@ def get_pending_count():
 @app.post("/api/phase/reorder-check")
 def reorder_check():
     body = request.json
-    mats = load_materials()
+    mats = load_materials(_pid())
     name = body.get("material", "").strip().title()
     if name not in mats:
         return jsonify({"error": f"Material '{name}' not found."}), 404
@@ -676,7 +711,7 @@ def reorder_check():
 @app.post("/api/phase/complete")
 def complete_phase():
     body = request.json
-    mats = load_materials()
+    mats = load_materials(_pid())
     name = body.get("material", "").strip().title()
     if name not in mats:
         return jsonify({"error": f"Material '{name}' not found."}), 404
@@ -692,7 +727,7 @@ def complete_phase():
         )
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    save_materials(mats)
+    save_materials(mats, _pid())
     return jsonify({
         "material":        name,
         "unit":            mat.unit,
@@ -715,7 +750,7 @@ def complete_phase():
 @app.post("/api/delivery/plan")
 def delivery_plan():
     body      = request.json
-    mats      = load_materials()
+    mats      = load_materials(_pid())
     sites     = load_sites()
     depot     = sites[0]
     dpts      = sites[1:]
@@ -767,7 +802,7 @@ def phase_forecast():
         regime (str: "MA" or "ARIMA"), thresholds used.
     """
     body = request.json
-    mats = load_materials()
+    mats = load_materials(_pid())
     name = body.get("material", "").strip().title()
     if name not in mats:
         return jsonify({"error": f"Material '{name}' not found."}), 404
@@ -981,7 +1016,7 @@ def delivery_plan_custom():
     if len(stops_raw) < 2:
         return jsonify({"error": "Provide at least a source and a destination."}), 400
 
-    mats = load_materials()
+    mats = load_materials(_pid())
 
     # Identify depot (first stop with is_depot=True, or first stop)
     depot_raw  = next((s for s in stops_raw if s.get("is_depot")), stops_raw[0])
@@ -1071,7 +1106,7 @@ def supply_plan():
     if not reqs_raw:
         return jsonify({"error": "requirements list is required"}), 400
 
-    mats = load_materials()
+    mats = load_materials(_pid())
 
     # Enrich requirements with unit_weight from material database
     requirements = []

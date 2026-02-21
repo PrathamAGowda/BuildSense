@@ -1,0 +1,74 @@
+{
+  "Cement": {
+    "name": "Cement",
+    "unit": "bags",
+    "baseline_buffer_pct": 6.0,
+    "buffer_pct": 6.0,
+    "weight_per_unit": 50.0,
+    "priority": 9,
+    "history": []
+  },
+  "Brick": {
+    "name": "Brick",
+    "unit": "pcs",
+    "baseline_buffer_pct": 10.0,
+    "buffer_pct": 10.0,
+    "weight_per_unit": 3.0,
+    "priority": 7,
+    "history": []
+  },
+  "Steel": {
+    "name": "Steel",
+    "unit": "kg",
+    "baseline_buffer_pct": 2.0,
+    "buffer_pct": 2.0,
+    "weight_per_unit": 1.0,
+    "priority": 10,
+    "history": []
+  },
+  "Sand": {
+    "name": "Sand",
+    "unit": "tons",
+    "baseline_buffer_pct": 8.0,
+    "buffer_pct": 8.0,
+    "weight_per_unit": 1000.0,
+    "priority": 6,
+    "history": []
+  },
+  "Aggregate": {
+    "name": "Aggregate",
+    "unit": "tons",
+    "baseline_buffer_pct": 5.0,
+    "buffer_pct": 5.0,
+    "weight_per_unit": 1000.0,
+    "priority": 5,
+    "history": []
+  },
+  "Paint": {
+    "name": "Paint",
+    "unit": "litres",
+    "baseline_buffer_pct": 7.0,
+    "buffer_pct": 7.0,
+    "weight_per_unit": 1.2,
+    "priority": 4,
+    "history": []
+  },
+  "Wood": {
+    "name": "Wood",
+    "unit": "sq ft",
+    "baseline_buffer_pct": 12.0,
+    "buffer_pct": 12.0,
+    "weight_per_unit": 5.0,
+    "priority": 6,
+    "history": []
+  },
+  "Glass": {
+    "name": "Glass",
+    "unit": "sq ft",
+    "baseline_buffer_pct": 5.0,
+    "buffer_pct": 5.0,
+    "weight_per_unit": 2.5,
+    "priority": 5,
+    "history": []
+  }
+}

@@ -12,9 +12,24 @@ from models.material import Material
 from models.delivery  import DeliveryPoint
 
 DATA_DIR              = os.path.dirname(__file__)
-MATERIALS_FILE        = os.path.join(DATA_DIR, "materials.json")
 SITES_FILE            = os.path.join(DATA_DIR, "sites.json")
 SUPPLY_NETWORK_FILE   = os.path.join(DATA_DIR, "supply_network.json")
+
+# ── Multi-project registry ──────────────────────────────────────── #
+PROJECTS_FILE         = os.path.join(DATA_DIR, "projects.json")
+
+# ── Per-project file paths (call get_project_dir(pid) first) ──────── #
+def get_project_dir(project_id: str) -> str:
+    d = os.path.join(DATA_DIR, "projects", project_id)
+    os.makedirs(d, exist_ok=True)
+    return d
+
+def _pfile(project_id: str, name: str) -> str:
+    return os.path.join(get_project_dir(project_id), name)
+
+# Legacy single-project paths (kept for backward compat if needed)
+_DEFAULT_PID          = "default"
+MATERIALS_FILE        = os.path.join(DATA_DIR, "materials.json")
 REORDER_LOG_FILE      = os.path.join(DATA_DIR, "reorder_log.json")
 PROJECT_CONFIG_FILE   = os.path.join(DATA_DIR, "project_config.json")
 PENDING_REORDERS_FILE = os.path.join(DATA_DIR, "pending_reorders.json")
@@ -91,20 +106,22 @@ def _build_default_materials() -> Dict[str, Material]:
     return result
 
 
-def load_materials() -> Dict[str, Material]:
-    if not os.path.exists(MATERIALS_FILE):
+def load_materials(project_id: str = None) -> Dict[str, Material]:
+    path = _pfile(project_id, "materials.json") if project_id else MATERIALS_FILE
+    if not os.path.exists(path):
         mats = _build_default_materials()
-        save_materials(mats)
+        save_materials(mats, project_id)
         return mats
-    with open(MATERIALS_FILE, "r") as fh:
+    with open(path, "r") as fh:
         raw: dict = json.load(fh)
     return {name: Material.from_dict(data) for name, data in raw.items()}
 
 
-def save_materials(materials: Dict[str, Material]) -> None:
-    os.makedirs(DATA_DIR, exist_ok=True)
+def save_materials(materials: Dict[str, Material], project_id: str = None) -> None:
+    path = _pfile(project_id, "materials.json") if project_id else MATERIALS_FILE
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     payload = {name: mat.to_dict() for name, mat in materials.items()}
-    with open(MATERIALS_FILE, "w") as fh:
+    with open(path, "w") as fh:
         json.dump(payload, fh, indent=2)
 
 
@@ -115,6 +132,7 @@ def add_custom_material(
     baseline_buffer_pct: float,
     weight_per_unit:     float,
     priority:            int,
+    project_id:          str = None,
 ) -> Material:
     key = name.strip().title()
     if key in materials:
@@ -128,7 +146,7 @@ def add_custom_material(
         priority=priority,
     )
     materials[key] = mat
-    save_materials(materials)
+    save_materials(materials, project_id)
     return mat
 
 
@@ -165,57 +183,100 @@ def load_supply_network() -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────── #
-#  Reorder Transaction Logs                                            #
+#  Reorder Transaction Logs  (project-aware)                           #
 # ─────────────────────────────────────────────────────────────────── #
 
-def load_reorder_logs() -> List[dict]:
-    """Return all persisted auto-reorder log entries (newest first)."""
-    if not os.path.exists(REORDER_LOG_FILE):
+def load_reorder_logs(project_id: str = None) -> List[dict]:
+    path = _pfile(project_id, "reorder_log.json") if project_id else REORDER_LOG_FILE
+    if not os.path.exists(path):
         return []
-    with open(REORDER_LOG_FILE, "r", encoding="utf-8") as fh:
+    with open(path, "r", encoding="utf-8") as fh:
         try:
             return json.load(fh)
         except json.JSONDecodeError:
             return []
 
 
-def append_reorder_log(entry: dict) -> dict:
-    """
-    Persist a single reorder event.
-
-    Expected fields in *entry* (all strings/numbers):
-      material, unit, reorder_qty, days_remaining, stockout_date,
-      ema_rate, critical, dest_name, source (trigger source string),
-      timestamp (ISO 8601 string — caller should set this).
-
-    Returns the entry with an auto-assigned integer `id`.
-    """
-    logs = load_reorder_logs()
-    entry["id"] = (logs[0]["id"] + 1) if logs else 1   # newest first → highest id
-    # Prepend so list stays newest-first
+def append_reorder_log(entry: dict, project_id: str = None) -> dict:
+    path = _pfile(project_id, "reorder_log.json") if project_id else REORDER_LOG_FILE
+    logs = load_reorder_logs(project_id)
+    entry["id"] = (logs[0]["id"] + 1) if logs else 1
     logs.insert(0, entry)
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(REORDER_LOG_FILE, "w", encoding="utf-8") as fh:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
         json.dump(logs, fh, indent=2)
     return entry
 
 
-def clear_reorder_logs() -> None:
-    """Wipe all reorder logs."""
-    if os.path.exists(REORDER_LOG_FILE):
-        os.remove(REORDER_LOG_FILE)
+def clear_reorder_logs(project_id: str = None) -> None:
+    path = _pfile(project_id, "reorder_log.json") if project_id else REORDER_LOG_FILE
+    if os.path.exists(path):
+        os.remove(path)
 
 
 # ─────────────────────────────────────────────────────────────────── #
-#  Project Site Config (saved once at project start)                   #
+#  Multi-Project Registry                                              #
+# ─────────────────────────────────────────────────────────────────── #
+
+def _load_projects_raw() -> List[dict]:
+    if not os.path.exists(PROJECTS_FILE):
+        return []
+    with open(PROJECTS_FILE, "r", encoding="utf-8") as fh:
+        try:
+            return json.load(fh)
+        except json.JSONDecodeError:
+            return []
+
+def _save_projects_raw(projects: List[dict]) -> None:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(PROJECTS_FILE, "w", encoding="utf-8") as fh:
+        json.dump(projects, fh, indent=2)
+
+def list_projects() -> List[dict]:
+    """Return all projects, newest first."""
+    return list(reversed(_load_projects_raw()))
+
+def create_project(name: str, dest_lat: float, dest_lon: float, dest_name: str) -> dict:
+    """Create a new project, persist it, and return it."""
+    import uuid
+    from datetime import datetime as _dt
+    projects = _load_projects_raw()
+    project = {
+        "id":         str(uuid.uuid4())[:8],
+        "name":       name,
+        "dest_lat":   dest_lat,
+        "dest_lon":   dest_lon,
+        "dest_name":  dest_name,
+        "created_at": _dt.utcnow().isoformat() + "Z",
+    }
+    projects.append(project)
+    _save_projects_raw(projects)
+    # Initialise empty data files for this project
+    get_project_dir(project["id"])
+    return project
+
+def get_project(project_id: str) -> dict:
+    """Return a single project dict or {} if not found."""
+    for p in _load_projects_raw():
+        if p["id"] == project_id:
+            return p
+    return {}
+
+def delete_project(project_id: str) -> bool:
+    """Remove a project from the registry (does not delete data files)."""
+    projects = _load_projects_raw()
+    new = [p for p in projects if p["id"] != project_id]
+    if len(new) == len(projects):
+        return False
+    _save_projects_raw(new)
+    return True
+
+# ─────────────────────────────────────────────────────────────────── #
+#  Project Site Config — legacy single-project shim                   #
+#  (still used by server endpoints that haven't migrated yet)          #
 # ─────────────────────────────────────────────────────────────────── #
 
 def load_project_config() -> dict:
-    """
-    Return the project-level config dict.
-    Keys: name, dest_lat, dest_lon, dest_name, created_at
-    Returns {} if not yet configured.
-    """
     if not os.path.exists(PROJECT_CONFIG_FILE):
         return {}
     with open(PROJECT_CONFIG_FILE, "r", encoding="utf-8") as fh:
@@ -224,9 +285,7 @@ def load_project_config() -> dict:
         except json.JSONDecodeError:
             return {}
 
-
 def save_project_config(config: dict) -> dict:
-    """Persist project config. Merges into existing if present."""
     existing = load_project_config()
     existing.update(config)
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -236,63 +295,54 @@ def save_project_config(config: dict) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────── #
-#  Pending Reorders queue                                              #
+#  Pending Reorders queue  (project-aware)                             #
 # ─────────────────────────────────────────────────────────────────── #
 
-def load_pending_reorders() -> List[dict]:
-    """Return all pending reorder items (newest first)."""
-    if not os.path.exists(PENDING_REORDERS_FILE):
+def load_pending_reorders(project_id: str = None) -> List[dict]:
+    path = _pfile(project_id, "pending_reorders.json") if project_id else PENDING_REORDERS_FILE
+    if not os.path.exists(path):
         return []
-    with open(PENDING_REORDERS_FILE, "r", encoding="utf-8") as fh:
+    with open(path, "r", encoding="utf-8") as fh:
         try:
             return json.load(fh)
         except json.JSONDecodeError:
             return []
 
 
-def _save_pending_reorders(items: List[dict]) -> None:
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(PENDING_REORDERS_FILE, "w", encoding="utf-8") as fh:
+def _save_pending_reorders(items: List[dict], project_id: str = None) -> None:
+    path = _pfile(project_id, "pending_reorders.json") if project_id else PENDING_REORDERS_FILE
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
         json.dump(items, fh, indent=2)
 
 
-def append_pending_reorder(entry: dict) -> dict:
-    """
-    Add a new pending reorder item.
-    Auto-assigns an integer id. Status starts as 'pending'.
-    Deduplicates: if a pending entry for the same material already exists,
-    updates it instead of adding a duplicate.
-    """
-    items = load_pending_reorders()
-    # Dedup — update existing pending item for same material
+def append_pending_reorder(entry: dict, project_id: str = None) -> dict:
+    items = load_pending_reorders(project_id)
     for existing in items:
         if (existing["material"] == entry["material"]
                 and existing["status"] == "pending"):
             existing.update(entry)
             existing["status"] = "pending"
-            _save_pending_reorders(items)
+            _save_pending_reorders(items, project_id)
             return existing
-    # New entry
     entry["id"] = (max((i["id"] for i in items), default=0) + 1)
     entry["status"] = "pending"
     items.insert(0, entry)
-    _save_pending_reorders(items)
+    _save_pending_reorders(items, project_id)
     return entry
 
 
-def update_pending_reorder(item_id: int, status: str, extra: dict = None) -> dict:
-    """Set status of a pending reorder item ('approved' | 'rejected')."""
-    items = load_pending_reorders()
+def update_pending_reorder(item_id: int, status: str, extra: dict = None, project_id: str = None) -> dict:
+    items = load_pending_reorders(project_id)
     for item in items:
         if item["id"] == item_id:
             item["status"] = status
             if extra:
                 item.update(extra)
-            _save_pending_reorders(items)
+            _save_pending_reorders(items, project_id)
             return item
     raise KeyError(f"Pending reorder id={item_id} not found.")
 
 
-def count_pending_reorders() -> int:
-    """Count items with status='pending' — used for nav badge."""
-    return sum(1 for i in load_pending_reorders() if i.get("status") == "pending")
+def count_pending_reorders(project_id: str = None) -> int:
+    return sum(1 for i in load_pending_reorders(project_id) if i.get("status") == "pending")

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "05a583ef",
+    "name": "Test Site Alpha",
+    "dest_lat": 12.97,
+    "dest_lon": 77.59,
+    "dest_name": "Bangalore",
+    "created_at": "2026-02-21T01:31:17.356638Z"
+  },
+  {
+    "id": "c854e661",
+    "name": "Teapot",
+    "dest_lat": 15.3004543,
+    "dest_lon": 74.0855134,
+    "dest_name": "Goa",
+    "created_at": "2026-02-21T01:43:05.673354Z"
+  },
+  {
+    "id": "37039b36",
+    "name": "Mumbai Metro Project",
+    "dest_lat": 19.07,
+    "dest_lon": 72.87,
+    "dest_name": "Mumbai",
+    "created_at": "2026-02-21T01:46:19.028470Z"
+  }
+]
