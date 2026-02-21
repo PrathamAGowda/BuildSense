@@ -1,0 +1,169 @@
+{
+  "Cement": {
+    "name": "Cement",
+    "unit": "bags",
+    "baseline_buffer_pct": 6.0,
+    "buffer_pct": 5.8981,
+    "weight_per_unit": 50.0,
+    "priority": 9,
+    "history": [
+      {
+        "phase_name": "Platform",
+        "planned_qty": 500.0,
+        "ordered_qty": 265.0,
+        "consumed_qty": 250.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 15.0,
+        "daily_usage": [
+          {
+            "date": "2026-02-22",
+            "quantity": 200.0
+          },
+          {
+            "date": "2026-02-23",
+            "quantity": 50.0
+          }
+        ]
+      },
+      {
+        "phase_name": "Gate",
+        "planned_qty": 200.0,
+        "ordered_qty": 318.0,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 318.0,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "Gate",
+        "planned_qty": 200.0,
+        "ordered_qty": 212.0,
+        "consumed_qty": 200.0,
+        "waste_pct": 5.6604,
+        "remaining_stock": 12.0,
+        "daily_usage": []
+      }
+    ]
+  },
+  "Brick": {
+    "name": "Brick",
+    "unit": "pcs",
+    "baseline_buffer_pct": 10.0,
+    "buffer_pct": 10.0,
+    "weight_per_unit": 3.0,
+    "priority": 7,
+    "history": []
+  },
+  "Steel": {
+    "name": "Steel",
+    "unit": "kg",
+    "baseline_buffer_pct": 2.0,
+    "buffer_pct": 2.0,
+    "weight_per_unit": 1.0,
+    "priority": 10,
+    "history": [
+      {
+        "phase_name": "Platform",
+        "planned_qty": 200.0,
+        "ordered_qty": 102.0,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 102.0,
+        "daily_usage": []
+      }
+    ]
+  },
+  "Sand": {
+    "name": "Sand",
+    "unit": "tons",
+    "baseline_buffer_pct": 8.0,
+    "buffer_pct": 8.0,
+    "weight_per_unit": 1000.0,
+    "priority": 6,
+    "history": [
+      {
+        "phase_name": "Platform",
+        "planned_qty": 50.0,
+        "ordered_qty": 43.2,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 43.2,
+        "daily_usage": []
+      }
+    ]
+  },
+  "Aggregate": {
+    "name": "Aggregate",
+    "unit": "tons",
+    "baseline_buffer_pct": 5.0,
+    "buffer_pct": 5.0,
+    "weight_per_unit": 1000.0,
+    "priority": 5,
+    "history": []
+  },
+  "Paint": {
+    "name": "Paint",
+    "unit": "litres",
+    "baseline_buffer_pct": 7.0,
+    "buffer_pct": 16.2084,
+    "weight_per_unit": 1.2,
+    "priority": 4,
+    "history": [
+      {
+        "phase_name": "Windows",
+        "planned_qty": 150.0,
+        "ordered_qty": 160.5,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 160.5,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "Windows",
+        "planned_qty": 150.0,
+        "ordered_qty": 160.5,
+        "consumed_qty": 100.0,
+        "waste_pct": 37.6947,
+        "remaining_stock": 60.5,
+        "daily_usage": []
+      }
+    ]
+  },
+  "Wood": {
+    "name": "Wood",
+    "unit": "sq ft",
+    "baseline_buffer_pct": 12.0,
+    "buffer_pct": 12.0,
+    "weight_per_unit": 5.0,
+    "priority": 6,
+    "history": []
+  },
+  "Glass": {
+    "name": "Glass",
+    "unit": "sq ft",
+    "baseline_buffer_pct": 5.0,
+    "buffer_pct": 0.0,
+    "weight_per_unit": 2.5,
+    "priority": 5,
+    "history": [
+      {
+        "phase_name": "Windows",
+        "planned_qty": 100.0,
+        "ordered_qty": 157.5,
+        "consumed_qty": 0.0,
+        "waste_pct": 0.0,
+        "remaining_stock": 157.5,
+        "daily_usage": []
+      },
+      {
+        "phase_name": "Windows",
+        "planned_qty": 100.0,
+        "ordered_qty": 105.0,
+        "consumed_qty": 250.0,
+        "waste_pct": -138.0952,
+        "remaining_stock": 0.0,
+        "daily_usage": []
+      }
+    ]
+  }
+}

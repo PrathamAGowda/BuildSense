@@ -1,0 +1,173 @@
+[
+  {
+    "timestamp": "2026-02-21T07:45:28.677372Z",
+    "source": "approved",
+    "material": "Paint",
+    "unit": "litres",
+    "reorder_qty": 160.5,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 9
+  },
+  {
+    "timestamp": "2026-02-21T07:45:28.677372Z",
+    "source": "approved",
+    "material": "Glass",
+    "unit": "sq ft",
+    "reorder_qty": 157.5,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 8
+  },
+  {
+    "timestamp": "2026-02-21T07:44:11.966873Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 53.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 7
+  },
+  {
+    "timestamp": "2026-02-21T07:43:36.157099Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 212.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 6
+  },
+  {
+    "timestamp": "2026-02-21T07:41:44.371979Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 106.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 5
+  },
+  {
+    "timestamp": "2026-02-21T07:40:58.116290Z",
+    "source": "daily-log",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 265.0,
+    "days_remaining": 0.1,
+    "stockout_date": "2026-02-21",
+    "ema_rate": 147.5,
+    "critical": true,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "triggered",
+    "id": 4
+  },
+  {
+    "timestamp": "2026-02-21T07:40:32.400370Z",
+    "source": "approved",
+    "material": "Cement",
+    "unit": "bags",
+    "reorder_qty": 265.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 3
+  },
+  {
+    "timestamp": "2026-02-21T07:40:32.400370Z",
+    "source": "approved",
+    "material": "Steel",
+    "unit": "kg",
+    "reorder_qty": 102.0,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 2
+  },
+  {
+    "timestamp": "2026-02-21T07:40:32.400370Z",
+    "source": "approved",
+    "material": "Sand",
+    "unit": "tons",
+    "reorder_qty": 43.2,
+    "days_remaining": null,
+    "stockout_date": null,
+    "ema_rate": null,
+    "critical": false,
+    "dest_name": "Bengaluru",
+    "depots_used": [
+      "Bangalore Central Depot"
+    ],
+    "total_distance_km": null,
+    "total_co2_kg": null,
+    "status": "approved",
+    "id": 1
+  }
+]
